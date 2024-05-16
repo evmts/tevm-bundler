@@ -1,16 +1,14 @@
-**@tevm/solc** ∙ [README](README.md) ∙ [API](API.md)
+[**@tevm/solc**](README.md) • **Docs**
 
 ***
 
-# API
+# @tevm/solc
 
-## Exports
-
-### Interfaces
+## Interfaces
 
 - [Solc](interfaces/Solc.md)
 
-### Type Aliases
+## Type Aliases
 
 - [Releases](type-aliases/Releases.md)
 - [SolcBytecodeOutput](type-aliases/SolcBytecodeOutput.md)
@@ -43,14 +41,11 @@
 - [SolcVersions](type-aliases/SolcVersions.md)
 - [SolcYulDetails](type-aliases/SolcYulDetails.md)
 
-### Variables
+## Variables
 
 - [releases](variables/releases.md)
 
-### Functions
+## Functions
 
 - [createSolc](functions/createSolc.md)
 - [solcCompile](functions/solcCompile.md)
-
-***
-Generated using [typedoc-plugin-markdown](https://www.npmjs.com/package/typedoc-plugin-markdown) and [TypeDoc](https://typedoc.org/)
