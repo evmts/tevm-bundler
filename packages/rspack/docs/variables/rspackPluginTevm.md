@@ -4,9 +4,9 @@
 
 [@tevm/rspack-plugin](../globals.md) / rspackPluginTevm
 
-# Function: rspackPluginTevm()
+# Variable: rspackPluginTevm()
 
-> **rspackPluginTevm**(`options`?): `RspackPluginInstance`
+> `const` **rspackPluginTevm**: (`options?`) => `RspackPluginInstance`
 
 Defined in: [bundler-packages/rspack/src/rspackPluginTevm.js:142](https://github.com/evmts/tevm-monorepo/blob/main/bundler-packages/rspack/src/rspackPluginTevm.js#L142)
 

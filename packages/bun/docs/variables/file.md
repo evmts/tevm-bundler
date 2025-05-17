@@ -4,39 +4,19 @@
 
 [@tevm/bun-plugin](../globals.md) / file
 
-# Function: file()
+# Variable: file()
+
+> `const` **file**: \{(`path`, `options?`): `BunFile`; (`path`, `options?`): `BunFile`; (`fileDescriptor`, `options?`): `BunFile`; \}
+
+Defined in: [bundler-packages/bun/src/bunFile.js:26](https://github.com/evmts/tevm-monorepo/blob/main/bundler-packages/bun/src/bunFile.js#L26)
 
 Re-exports the Bun file API for working with files in the file system.
 The Bun file API provides an optimized interface for file operations with
 methods for reading, writing, and checking file existence.
 
-## See
-
-[Bun File I/O Documentation](https://bun.sh/docs/api/file-io)
-
-## Example
-
-```javascript
-import { file } from '@tevm/bun'
-
-// Create a file reference
-const myFile = file('path/to/file.txt')
-
-// Check if the file exists
-const exists = await myFile.exists()
-
-// Read file as text
-const content = await myFile.text()
-
-// Write to file
-await myFile.write('Hello, world!')
-```
-
 ## Call Signature
 
-> **file**(`path`, `options`?): `BunFile`
-
-Defined in: [bundler-packages/bun/src/bunFile.js:26](https://github.com/evmts/tevm-monorepo/blob/main/bundler-packages/bun/src/bunFile.js#L26)
+> (`path`, `options?`): `BunFile`
 
 [`Blob`](https://developer.mozilla.org/en-US/docs/Web/API/Blob) powered by the fastest system calls available for operating on files.
 
@@ -61,27 +41,7 @@ The path to the file (lazily loaded) if the path starts with `s3://` it will beh
 
 `BunFile`
 
-### See
-
-[Bun File I/O Documentation](https://bun.sh/docs/api/file-io)
-
 ### Examples
-
-```javascript
-import { file } from '@tevm/bun'
-
-// Create a file reference
-const myFile = file('path/to/file.txt')
-
-// Check if the file exists
-const exists = await myFile.exists()
-
-// Read file as text
-const content = await myFile.text()
-
-// Write to file
-await myFile.write('Hello, world!')
-```
 
 ```js
 const file = Bun.file("./hello.json");
@@ -98,9 +58,7 @@ await Bun.write(
 
 ## Call Signature
 
-> **file**(`path`, `options`?): `BunFile`
-
-Defined in: [bundler-packages/bun/src/bunFile.js:26](https://github.com/evmts/tevm-monorepo/blob/main/bundler-packages/bun/src/bunFile.js#L26)
+> (`path`, `options?`): `BunFile`
 
 `Blob` that leverages the fastest system calls available to operate on files.
 
@@ -125,27 +83,7 @@ The path to the file as a byte buffer (the buffer is copied) if the path starts 
 
 `BunFile`
 
-### See
-
-[Bun File I/O Documentation](https://bun.sh/docs/api/file-io)
-
-### Examples
-
-```javascript
-import { file } from '@tevm/bun'
-
-// Create a file reference
-const myFile = file('path/to/file.txt')
-
-// Check if the file exists
-const exists = await myFile.exists()
-
-// Read file as text
-const content = await myFile.text()
-
-// Write to file
-await myFile.write('Hello, world!')
-```
+### Example
 
 ```js
 const file = Bun.file(new TextEncoder.encode("./hello.json"));
@@ -154,9 +92,7 @@ console.log(file.type); // "application/json"
 
 ## Call Signature
 
-> **file**(`fileDescriptor`, `options`?): `BunFile`
-
-Defined in: [bundler-packages/bun/src/bunFile.js:26](https://github.com/evmts/tevm-monorepo/blob/main/bundler-packages/bun/src/bunFile.js#L26)
+> (`fileDescriptor`, `options?`): `BunFile`
 
 [`Blob`](https://developer.mozilla.org/en-US/docs/Web/API/Blob) powered by the fastest system calls available for operating on files.
 
@@ -180,11 +116,17 @@ The file descriptor of the file
 
 `BunFile`
 
-### See
+### Example
+
+```js
+const file = Bun.file(fd);
+```
+
+## See
 
 [Bun File I/O Documentation](https://bun.sh/docs/api/file-io)
 
-### Examples
+## Example
 
 ```javascript
 import { file } from '@tevm/bun'
@@ -200,8 +142,4 @@ const content = await myFile.text()
 
 // Write to file
 await myFile.write('Hello, world!')
-```
-
-```js
-const file = Bun.file(fd);
 ```
