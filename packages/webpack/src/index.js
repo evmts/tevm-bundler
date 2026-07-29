@@ -1,5 +1,5 @@
 /**
- * @module @tevm/webpack
+ * @module @tevm/webpack-plugin
  *
  * A module that provides a Webpack plugin for enabling direct Solidity imports
  * in JavaScript and TypeScript. This plugin integrates with Webpack to transform

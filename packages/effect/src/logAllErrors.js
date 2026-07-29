@@ -7,7 +7,7 @@ import { all, logError } from 'effect/Effect'
  * @internal
  * @example
  * ```typescript
- * import { logAllErrors } from '@eth-optimism/config'
+ * import { logAllErrors } from '@tevm/effect'
  *
  * someEffect.pipe(
  *   tapError(logAllErrors)

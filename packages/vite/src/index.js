@@ -1,5 +1,5 @@
 /**
- * @module @tevm/vite
+ * @module @tevm/vite-plugin
  *
  * A module that provides a Vite plugin for enabling direct Solidity imports
  * in JavaScript and TypeScript. This plugin integrates with Vite to transform
@@ -9,7 +9,7 @@
  * ```javascript
  * // vite.config.js
  * import { defineConfig } from 'vite'
- * import { vitePluginTevm } from '@tevm/vite'
+ * import { vitePluginTevm } from '@tevm/vite-plugin'
  *
  * export default defineConfig({
  *   plugins: [vitePluginTevm()],

@@ -18,3 +18,5 @@ types/
 **/dist/
 **/target/
 **/types/
+.vercel
+.env.local

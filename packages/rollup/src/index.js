@@ -1,5 +1,5 @@
 /**
- * @module @tevm/rollup
+ * @module @tevm/rollup-plugin
  *
  * A module that provides a Rollup plugin for enabling direct Solidity imports
  * in JavaScript and TypeScript. This plugin integrates with Rollup to transform
@@ -9,7 +9,7 @@
  * ```javascript
  * // rollup.config.js
  * import { defineConfig } from 'rollup'
- * import { rollupPluginTevm } from '@tevm/rollup'
+ * import { rollupPluginTevm } from '@tevm/rollup-plugin'
  *
  * export default defineConfig({
  *   input: 'src/index.js',

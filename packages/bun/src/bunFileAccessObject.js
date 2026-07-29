@@ -14,7 +14,7 @@ import { file } from './bunFile.js'
  *
  * @example
  * ```javascript
- * import { bunFileAccesObject } from '@tevm/bun'
+ * import { bunFileAccesObject } from '@tevm/bun-plugin'
  * import { bundler } from '@tevm/base-bundler'
  *
  * // Use in Tevm bundler

@@ -17,7 +17,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  *
  * ```javascript
  * // esbuild.config.js
- * import { esbuildPluginTevm } from '@tevm/esbuild'
+ * import { esbuildPluginTevm } from '@tevm/esbuild-plugin'
  * import { build } from 'esbuild'
  *
  * build({
@@ -36,7 +36,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  * ```json
  * {
  *   "compilerOptions": {
- *     "plugins": [{ "name": "tevm/ts-plugin" }]
+ *     "plugins": [{ "name": "@tevm/ts-plugin" }]
  *   }
  * }
  * ```

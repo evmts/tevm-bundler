@@ -54,7 +54,7 @@ class WebpackPlugin {
  * ```json
  * {
  *   "compilerOptions": {
- *     "plugins": [{ "name": "tevm/ts-plugin" }]
+ *     "plugins": [{ "name": "@tevm/ts-plugin" }]
  *   }
  * }
  * ```

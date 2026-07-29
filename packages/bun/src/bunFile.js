@@ -8,7 +8,7 @@
  *
  * @example
  * ```javascript
- * import { file } from '@tevm/bun'
+ * import { file } from '@tevm/bun-plugin'
  *
  * // Create a file reference
  * const myFile = file('path/to/file.txt')

@@ -1,5 +1,5 @@
 /**
- * @module @tevm/rspack
+ * @module @tevm/rspack-plugin
  *
  * A module that provides an Rspack plugin for enabling direct Solidity imports
  * in JavaScript and TypeScript. This plugin integrates with Rspack to transform
@@ -11,7 +11,7 @@
  * @example
  * ```javascript
  * // rspack.config.js
- * import { rspackPluginTevm } from '@tevm/rspack'
+ * import { rspackPluginTevm } from '@tevm/rspack-plugin'
  *
  * module.exports = {
  *   entry: './src/index.js',

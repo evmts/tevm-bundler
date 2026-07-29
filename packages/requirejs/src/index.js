@@ -1,5 +1,5 @@
 /**
- * @module @tevm/requirejs
+ * @module @tevm/requirejs-plugin
  *
  * This module provides a RequireJS loader plugin for enabling direct Solidity imports in
  * JavaScript and TypeScript. The plugin integrates with RequireJS's module loading system

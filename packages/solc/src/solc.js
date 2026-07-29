@@ -125,10 +125,38 @@ export const releases = {
 }
 
 /**
- * Typesafe wrapper around solc.compile
- * @param {any} solc
- * @param {import("./solcTypes.js").SolcInputDescription} input
- * @returns {import("./solcTypes.js").SolcOutput}
+ * Typesafe wrapper around solc.compile.
+ *
+ * Handles serializing the standard JSON input and parsing the output, so callers
+ * work with objects rather than strings.
+ *
+ * Note that solc reports compilation problems in `output.errors` rather than by
+ * throwing, so always inspect it: an output with no `contracts` is a failed
+ * compile, not an empty project.
+ *
+ * @param {any} solc - A solc instance, e.g. from {@link createSolc} or the `solc` package
+ * @param {import("./solcTypes.js").SolcInputDescription} input - Solc standard JSON input
+ * @returns {import("./solcTypes.js").SolcOutput} The parsed solc standard JSON output
+ * @throws {SyntaxError} If solc returns a string that is not valid JSON
+ * @example
+ * ```javascript
+ * import { createSolc, solcCompile } from '@tevm/solc'
+ *
+ * const solc = await createSolc('0.8.30')
+ *
+ * const output = solcCompile(solc, {
+ *   language: 'Solidity',
+ *   sources: {
+ *     'Counter.sol': { content: 'contract Counter { uint256 public count; }' },
+ *   },
+ *   settings: {
+ *     outputSelection: { '*': { '*': ['abi'] } },
+ *   },
+ * })
+ *
+ * console.log(output.contracts?.['Counter.sol']?.['Counter']?.abi)
+ * console.log(output.errors ?? [])
+ * ```
  */
 export const solcCompile = (solc, input) => {
 	const output = solc.compile(JSON.stringify(input))
@@ -136,8 +164,28 @@ export const solcCompile = (solc, input) => {
 }
 
 /**
- * @param {keyof import("./solcTypes.js").Releases} release
+ * Loads a specific Solidity compiler release.
+ *
+ * The compiler build is fetched from solc-bin on first use for a given version,
+ * so the initial call requires network access. The returned instance's `compile`
+ * accepts either a {@link import("./solcTypes.js").SolcInputDescription} object
+ * (returning a parsed output object) or a JSON string (returning a JSON string).
+ *
+ * If you do not need a specific version, use the `solc` package directly — that
+ * path involves no download.
+ *
+ * @param {keyof import("./solcTypes.js").Releases} release - A version string present in {@link releases}, e.g. `'0.8.30'`
  * @returns {Promise<import("./solcTypes.js").Solc>} An instance of solc
+ * @throws {Error} If the remote compiler version could not be loaded
+ * @example
+ * ```javascript
+ * import { createSolc, releases } from '@tevm/solc'
+ *
+ * console.log(releases['0.8.30']) // 'v0.8.30+commit.73712a01.js'
+ *
+ * const solc = await createSolc('0.8.30')
+ * console.log(solc.version())
+ * ```
  */
 export const createSolc = async (release) => {
 	const s = await new Promise((resolve, reject) =>

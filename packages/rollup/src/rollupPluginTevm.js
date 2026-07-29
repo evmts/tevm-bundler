@@ -19,7 +19,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  * ```javascript
  * // rollup.config.js
  * import { defineConfig } from 'rollup'
- * import { rollupPluginTevm } from '@tevm/rollup'
+ * import { rollupPluginTevm } from '@tevm/rollup-plugin'
  *
  * export default defineConfig({
  *   input: 'src/index.js',
@@ -39,7 +39,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  * ```json
  * {
  *   "compilerOptions": {
- *     "plugins": [{ "name": "tevm/ts-plugin" }]
+ *     "plugins": [{ "name": "@tevm/ts-plugin" }]
  *   }
  * }
  * ```

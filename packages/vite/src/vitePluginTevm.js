@@ -15,7 +15,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  * // Basic Configuration - Add the plugin to your Vite configuration
  * // vite.config.js
  * import { defineConfig } from 'vite'
- * import { vitePluginTevm } from '@tevm/vite'
+ * import { vitePluginTevm } from '@tevm/vite-plugin'
  *
  * export default defineConfig({
  *   plugins: [vitePluginTevm()],
@@ -26,7 +26,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  * // Add to tsconfig.json:
  * // {
  * //   "compilerOptions": {
- * //     "plugins": [{ "name": "tevm/ts-plugin" }]
+ * //     "plugins": [{ "name": "@tevm/ts-plugin" }]
  * //   }
  * // }
  *

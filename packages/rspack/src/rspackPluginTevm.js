@@ -44,7 +44,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  * ```typescript
  * // rsbuild.config.ts
  * import { defineConfig } from '@rsbuild/core'
- * import { rspackPluginTevm } from '@tevm/rspack'
+ * import { rspackPluginTevm } from '@tevm/rspack-plugin'
  *
  * export default defineConfig({
  *   tools: {
@@ -63,7 +63,7 @@ import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
  * ```json
  * {
  *   "compilerOptions": {
- *     "plugins": [{ "name": "tevm/ts-plugin" }]
+ *     "plugins": [{ "name": "@tevm/ts-plugin" }]
  *   }
  * }
  * ```

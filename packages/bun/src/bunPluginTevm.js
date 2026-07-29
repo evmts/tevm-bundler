@@ -22,7 +22,7 @@ import { bunFileAccesObject } from './bunFileAccessObject.js'
  * #### Setup in a plugin.ts file
  * ```typescript
  * // plugins.ts
- * import { bunPluginTevm } from '@tevm/bun'
+ * import { bunPluginTevm } from '@tevm/bun-plugin'
  * import { plugin } from 'bun'
  *
  * // Initialize with default options
@@ -43,7 +43,7 @@ import { bunFileAccesObject } from './bunFileAccessObject.js'
  * ```json
  * {
  *   "compilerOptions": {
- *     "plugins": [{ "name": "tevm/ts-plugin" }]
+ *     "plugins": [{ "name": "@tevm/ts-plugin" }]
  *   }
  * }
  * ```

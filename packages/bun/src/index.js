@@ -1,5 +1,5 @@
 /**
- * @module @tevm/bun
+ * @module @tevm/bun-plugin
  *
  * This module provides a Bun plugin for enabling direct Solidity imports in
  * JavaScript and TypeScript. The plugin integrates with Bun's build system to
@@ -9,7 +9,7 @@
  * @example
  * ```typescript
  * // plugins.ts
- * import { bunPluginTevm } from '@tevm/bun'
+ * import { bunPluginTevm } from '@tevm/bun-plugin'
  * import { plugin } from 'bun'
  *
  * // Register the plugin with Bun

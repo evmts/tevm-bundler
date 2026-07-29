@@ -25,7 +25,7 @@ import { isSolidity } from './utils/index.js'
  * ```json
  * {
  *   "compilerOptions": {
- *     "plugins": [{ "name": "tevm-ts-plugin" }]
+ *     "plugins": [{ "name": "@tevm/ts-plugin" }]
  *   }
  * }
  * ```

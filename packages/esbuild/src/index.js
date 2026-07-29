@@ -1,5 +1,5 @@
 /**
- * @module @tevm/esbuild
+ * @module @tevm/esbuild-plugin
  *
  * A module that provides an esbuild plugin for enabling direct Solidity imports
  * in JavaScript and TypeScript. This plugin allows you to import Solidity contracts
@@ -9,7 +9,7 @@
  * @example
  * ```javascript
  * // esbuild.config.js
- * import { esbuildPluginTevm } from '@tevm/esbuild'
+ * import { esbuildPluginTevm } from '@tevm/esbuild-plugin'
  * import { build } from 'esbuild'
  *
  * build({

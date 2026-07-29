@@ -13,7 +13,7 @@ import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
  *
  * @example
  * ```javascript
- * import { requirejsFileAccessObject } from '@tevm/requirejs'
+ * import { requirejsFileAccessObject } from '@tevm/requirejs-plugin'
  * import { bundler } from '@tevm/base-bundler'
  *
  * // Use in Tevm bundler

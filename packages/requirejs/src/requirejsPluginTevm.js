@@ -40,7 +40,7 @@ import { requirejsFileAccessObject } from './requirejsFileAccessObject.js'
  * #### With specific compiler version
  * ```javascript
  * // In your build config or preload script
- * import { requirejsPluginTevm } from '@tevm/requirejs'
+ * import { requirejsPluginTevm } from '@tevm/requirejs-plugin'
  *
  * // Create plugin with specific solc version
  * const plugin = requirejsPluginTevm({ solc: '0.8.20' })
