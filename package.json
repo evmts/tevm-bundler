@@ -17,7 +17,7 @@
 		"lint": "biome check .",
 		"release": "pnpm build && changeset publish",
 		"test": "pnpm --recursive --if-present run test:run",
-		"typecheck": "pnpm --recursive --if-present run typecheck"
+		"typecheck": "pnpm build && pnpm --recursive --if-present run typecheck"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.15",

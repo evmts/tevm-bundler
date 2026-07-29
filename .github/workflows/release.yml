@@ -14,6 +14,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,7 +31,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.1
       - run: npm install --global npm@latest
       - run: pnpm install --frozen-lockfile
+      - name: Publishing is not configured
+        if: env.NPM_TOKEN == ''
+        run: echo "NPM_TOKEN is not configured; skipping the Changesets release step."
       - uses: changesets/action@v1
+        if: env.NPM_TOKEN != ''
         with:
           version: pnpm changeset-version
           publish: pnpm release
@@ -37,5 +43,5 @@ jobs:
           commit: "chore: release packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ env.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
