@@ -1,0 +1,131 @@
+---
+title: Troubleshooting
+description: Common failures with Solidity imports and what actually causes them.
+---
+
+# Troubleshooting
+
+## `Cannot find module './Counter.sol'` in my editor
+
+The build works but TypeScript disagrees. In order of likelihood:
+
+1. **`@tevm/ts-plugin` is not in `tsconfig.json`.** Add it:
+
+   ```json [tsconfig.json]
+   { "compilerOptions": { "plugins": [{ "name": "@tevm/ts-plugin" }] } }
+   ```
+
+   The name must match exactly — the config loader looks for the literal string
+   `@tevm/ts-plugin`.
+
+2. **VS Code is using its bundled TypeScript.** Language service plugins are
+   only loaded by your workspace copy. Command palette → *TypeScript: Select
+   TypeScript Version* → *Use Workspace Version*.
+
+3. **You ran `tsc` on the command line.** `tsc` does not load language service
+   plugins — only `tsserver` does. See
+   [Editor & TypeScript setup](/guides/editor-setup#command-line-type-checking).
+
+## `Cannot find module './Counter.sol'` at build time
+
+The plugin is not claiming the file. Check that:
+
+- the plugin is actually in your plugin array, and for webpack that you wrote
+  `new WebpackPluginTevm()` rather than calling it as a function;
+- there is no sidecar module next to the Solidity file. The plugin deliberately
+  skips `Counter.sol` when `Counter.sol.ts`, `.js`, `.mjs`, `.cjs` or `.d.ts`
+  exists, so a leftover generated file will shadow the real thing;
+- for Bun, that `bunfig.toml` has both `preload` **and** `[test].preload`.
+
+## `Counter.bytecode` is `undefined`
+
+You imported a plain `.sol` file. Bytecode is only compiled and emitted for
+`.s.sol` ("script") files, because most application code only needs the ABI and
+bytecode is large.
+
+Rename the file to `Counter.s.sol`, or keep both: a plain `.sol` for reading
+from a deployed instance and an `.s.sol` when you need to deploy.
+
+## Solidity import cannot be found
+
+`Error: Could not resolve import "@openzeppelin/contracts/token/ERC20/ERC20.sol"`
+
+The resolver looks at, in order: relative paths, your `remappings`, and each
+entry in `libs`. Fix it by adding whichever is missing to
+[`tevm.config.json`](/guides/configuration):
+
+```json [tevm.config.json]
+{
+	"libs": ["lib", "node_modules"],
+	"remappings": { "@openzeppelin/": "node_modules/@openzeppelin/" }
+}
+```
+
+For a Foundry project, `"foundryProject": true` imports both automatically —
+see [Foundry projects](/guides/foundry).
+
+Remember that remapping keys and values are *prefixes*: `"@openzeppelin"`
+without the trailing slash will also match `@openzeppelin-upgradeable`.
+
+## `FoundryNotFoundError`
+
+`foundryProject` is set but `forge config --json` could not run. Either install
+Foundry, point at the binary explicitly
+(`"foundryProject": "/usr/local/bin/forge"`), or drop `foundryProject` and list
+`remappings`/`libs` yourself.
+
+This bites most often in CI, where `forge` is installed for one job but the
+bundler runs in another.
+
+## Compilation fails with a solc error
+
+The plugin surfaces solc's own diagnostics. Two Tevm-specific causes are worth
+ruling out first:
+
+- **Version mismatch.** Your `pragma` may not be satisfiable by the compiler the
+  plugin is using. Set it explicitly: `vitePluginTevm({ solc: '0.8.30' })`.
+- **A partially resolved graph.** If an import silently resolved to the wrong
+  file, solc reports a confusing type error rather than a missing file. Turn on
+  [`debug`](/guides/configuration#debug) and inspect the `solcInput` written to
+  the cache directory.
+
+## Stale output after editing a contract
+
+The cache keys on file modification time plus a compile fingerprint, so this
+should not happen. If it does:
+
+```bash
+rm -rf .tevm
+```
+
+and please [file an issue](https://github.com/evmts/tevm-bundler/issues) with
+the `metadata.json` of the affected contract — silent staleness is a bug, not a
+workflow step.
+
+Note that changing the `solc` plugin option *does* invalidate the cache (the
+solc version is part of the fingerprint), but changing `cacheDir` or `debug`
+does not, because neither affects compiler output.
+
+## Next.js: type errors in `next build` only
+
+Next runs its own project-wide type check that does not load TypeScript language
+service plugins. See [the webpack guide](/guides/webpack#nextjs) for the two
+supported workarounds.
+
+## `.tevm` showing up in git
+
+Add it to `.gitignore`. It is a cache; nothing in it should be committed.
+
+## Still stuck
+
+Turn on debug output, which logs resolution decisions and writes the exact solc
+input into the cache directory:
+
+```json [tevm.config.json]
+{ "debug": true }
+```
+
+Then open an issue at
+[github.com/evmts/tevm-bundler/issues](https://github.com/evmts/tevm-bundler/issues)
+with your `tevm.config.json`, the bundler and its version, and the resolution
+log.

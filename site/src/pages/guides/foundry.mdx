@@ -1,0 +1,147 @@
+---
+title: Foundry projects
+description: Use the Tevm bundler alongside an existing Foundry project.
+---
+
+# Foundry projects
+
+If your contracts already live in a Foundry project, you do not need to restate
+its remappings and library paths. Turn on `foundryProject` and Tevm asks `forge`
+for them.
+
+```json [tevm.config.json]
+{
+	"foundryProject": true
+}
+```
+
+At config-resolution time this runs:
+
+```bash
+forge config --json
+```
+
+and merges the resulting `remappings` and `libs` into the Tevm config. Your own
+`remappings` in `tevm.config.json` are layered on top and win on conflict.
+
+## Pointing at a specific forge binary
+
+Set `foundryProject` to a path instead of `true`:
+
+```json [tevm.config.json]
+{
+	"foundryProject": "/opt/homebrew/bin/forge"
+}
+```
+
+This is worth doing in CI, where `forge` may not be on `PATH` for the process
+that runs your bundler.
+
+## A complete Foundry + Vite project
+
+```
+my-dapp/
+├── foundry.toml
+├── remappings.txt
+├── lib/
+│   └── openzeppelin-contracts/
+├── src/
+│   └── Token.sol
+├── tevm.config.json
+├── tsconfig.json
+├── vite.config.ts
+└── app/
+    └── main.ts
+```
+
+```toml [foundry.toml]
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+```
+
+```txt [remappings.txt]
+@openzeppelin/=lib/openzeppelin-contracts/
+```
+
+```json [tevm.config.json]
+{
+	"foundryProject": true
+}
+```
+
+```solidity [src/Token.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract Token is ERC20 {
+    constructor() ERC20("Token", "TKN") {
+        _mint(msg.sender, 1_000_000e18);
+    }
+}
+```
+
+```ts [vite.config.ts]
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+	plugins: [vitePluginTevm()],
+})
+```
+
+```ts [app/main.ts]
+import { createMemoryClient } from 'tevm'
+import { Token } from '../src/Token.sol'
+
+const client = createMemoryClient()
+
+const token = Token.withAddress('0x1234567890123456789012345678901234567890')
+
+await client.setCode({
+	address: token.address,
+	bytecode: token.deployedBytecode,
+})
+
+console.log(await client.readContract(token.read.symbol()))
+```
+
+Note that `src/Token.sol` is a plain `.sol` file, so the import carries the ABI
+but no creation bytecode. If you want to deploy it from JavaScript, rename it to
+`Token.s.sol` or add a separate `.s.sol` wrapper — Foundry ignores the extra
+extension segment and still compiles it.
+
+## Living alongside `forge build`
+
+The two toolchains do not share an artifact directory. Foundry writes to `out/`,
+Tevm writes to `.tevm/`. They can both be present; they simply compile the same
+sources independently.
+
+If you want a single source of truth for the solc version, set it in both
+places:
+
+```toml [foundry.toml]
+[profile.default]
+solc = "0.8.30"
+```
+
+```ts [vite.config.ts]
+vitePluginTevm({ solc: '0.8.30' })
+```
+
+Tevm does not read `foundry.toml`'s `solc` field — the compiler version is a
+plugin option, so it must be set explicitly.
+
+## Errors you might see
+
+- **`FoundryNotFoundError`** — `forge config --json` could not be executed.
+  Either install Foundry, point `foundryProject` at the binary, or drop
+  `foundryProject` and list `remappings` and `libs` in `tevm.config.json`
+  yourself.
+- **`FoundryConfigError`** — `forge` ran but its output could not be parsed.
+  Run `forge config --json` by hand to see what it emitted.
+- **`InvalidRemappingsError`** — the remappings from `forge` (or from
+  `remappings.txt`) were not in `prefix=target` form.

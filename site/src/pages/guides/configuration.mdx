@@ -1,0 +1,175 @@
+---
+title: Configuration
+description: The tevm.config.json reference and every place configuration can come from.
+---
+
+# Configuration
+
+All Tevm tooling — the bundler plugins, the TypeScript language service plugin,
+and the language server — reads the same project configuration. That is
+deliberate: if the editor and the build resolved imports differently you would
+get type-checks that pass and bundles that break.
+
+Configuration is resolved by [`@tevm/config`](/api/config).
+
+## Where configuration comes from
+
+Sources are consulted in this order, and the results are merged:
+
+1. **`tevm.config.json`** in your project root. This is the preferred location.
+2. **`tsconfig.json`**, if no `tevm.config.json` exists. Options go in the
+   `@tevm/ts-plugin` plugin entry, and `compilerOptions.paths` are additionally
+   converted into Solidity remappings.
+3. **`remappings.txt`** in your project root, if present, in the standard
+   Foundry format.
+4. **`foundry.toml`**, when `foundryProject` is enabled — see
+   [Foundry projects](/guides/foundry).
+
+Anything unset falls back to the defaults below.
+
+## `tevm.config.json`
+
+```json [tevm.config.json]
+{
+	"foundryProject": true,
+	"libs": ["lib", "node_modules"],
+	"remappings": {
+		"@openzeppelin/": "node_modules/@openzeppelin/"
+	},
+	"jsonAsConst": ["**/*.abi.json"],
+	"cacheDir": ".tevm",
+	"debug": false
+}
+```
+
+### `foundryProject`
+
+`boolean | string` — default `false`.
+
+When `true`, `forge config --json` is executed to pull in the project's
+remappings and library paths. When set to a string, that string is used as the
+path to the `forge` executable. See [Foundry projects](/guides/foundry).
+
+### `libs`
+
+`string[]` — default `[]`.
+
+Extra directories to search when resolving a Solidity import that is not
+relative. Resolution tries each entry in order. In a Foundry project the
+`foundry.toml` library paths are merged in on top of this list.
+
+```json
+{ "libs": ["lib", "node_modules", "vendor/contracts"] }
+```
+
+### `remappings`
+
+`Record<string, string>` — default `{}`.
+
+Import prefix rewrites, in the same spirit as Foundry's `remappings.txt`. Keys
+and values are prefixes, so trailing slashes matter:
+
+```json
+{
+	"remappings": {
+		"@openzeppelin/": "node_modules/@openzeppelin/",
+		"forge-std/": "lib/forge-std/src/"
+	}
+}
+```
+
+With that in place, `import "@openzeppelin/contracts/token/ERC20/ERC20.sol";`
+resolves to `node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol`.
+
+Remappings from `remappings.txt`, from `foundry.toml`, and from
+`compilerOptions.paths` are merged with these; explicit `remappings` entries in
+`tevm.config.json` win.
+
+### `jsonAsConst`
+
+`string | string[]` — default `[]`.
+
+Glob patterns for JSON files whose contents should be emitted with an `as const`
+assertion, so that ABIs stored as JSON keep their literal types instead of
+widening to `string[]`.
+
+```json
+{ "jsonAsConst": ["**/*.abi.json", "abis/**/*.json"] }
+```
+
+### `cacheDir`
+
+`string` — default `.tevm`.
+
+Where compilation artifacts are written. Relative paths are resolved from the
+current working directory. Absolute paths are supported and are namespaced per
+project internally, which makes a shared cache directory across several
+checkouts safe. See [Caching](/guides/caching).
+
+### `debug`
+
+`boolean` — default `false`.
+
+Emits verbose logs and writes extra debug files into the cache directory. Useful
+when a resolution is going somewhere unexpected; noisy otherwise.
+
+## Configuration in `tsconfig.json`
+
+If you would rather keep everything in one file, put the same fields on the
+plugin entry. This only applies when there is no `tevm.config.json`.
+
+```json [tsconfig.json]
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@contracts/*": ["src/contracts/*"]
+		},
+		"plugins": [
+			{
+				"name": "@tevm/ts-plugin",
+				"foundryProject": true,
+				"libs": ["lib"]
+			}
+		]
+	}
+}
+```
+
+Note the extra behaviour here: `compilerOptions.paths` entries are converted
+into Solidity remappings automatically, so `@contracts/Token.sol` resolves the
+same way in a Solidity `import` statement as it does in a TypeScript one.
+
+The plugin entry must be named exactly `@tevm/ts-plugin`; other names are
+ignored.
+
+## Per-plugin options
+
+Bundler plugins take exactly one option of their own:
+
+```ts
+vitePluginTevm({ solc: '0.8.30' })
+```
+
+`solc` picks the Solidity compiler version and must be one of the releases known
+to [`@tevm/solc`](/api/solc). It is a plugin option rather than a
+`tevm.config.json` field because the TypeScript plugin and language server
+resolve types without invoking a specific compiler build.
+
+## Reading the resolved config yourself
+
+```ts
+import { loadConfig } from '@tevm/config'
+import { runPromise } from 'effect/Effect'
+
+const config = await runPromise(loadConfig(process.cwd()))
+
+console.log(config.cacheDir) // '.tevm'
+console.log(config.remappings) // { '@openzeppelin/': 'node_modules/@openzeppelin/' }
+console.log(config.libs) // ['lib', 'node_modules']
+```
+
+`loadConfig` fails with a `LoadConfigError` if a config file exists but is
+invalid. A *missing* `tevm.config.json` is not an error at the plugin level —
+the plugins catch `FailedToReadConfigError` and fall back to `defaultConfig`.
+See [`@tevm/config`](/api/config) for the full API.

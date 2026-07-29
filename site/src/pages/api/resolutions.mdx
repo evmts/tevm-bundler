@@ -1,0 +1,140 @@
+---
+title: '@tevm/resolutions'
+description: Walk the Solidity import graph, applying remappings and library paths.
+---
+
+# `@tevm/resolutions`
+
+```bash
+npm install --save-dev @tevm/resolutions
+```
+
+Given an entry `.sol` file, produce the complete import graph: every file
+reachable from it, with imports rewritten to absolute paths that solc can
+consume.
+
+This is the step that makes `import "@openzeppelin/contracts/token/ERC20/ERC20.sol";`
+work.
+
+## `moduleFactory(absolutePath, rawCode, remappings, libs, fao, sync)`
+
+```ts
+import { moduleFactory } from '@tevm/resolutions'
+import { runPromise } from 'effect/Effect'
+import { existsSync, readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+
+const fao = {
+	readFile: (path: string, encoding: BufferEncoding) => readFile(path, { encoding }),
+	readFileSync,
+	existsSync,
+	exists: async (path: string) => existsSync(path),
+}
+
+const entry = resolve('./contracts/Token.sol')
+
+const modules = await runPromise(
+	moduleFactory(
+		entry,
+		readFileSync(entry, 'utf8'),
+		{ '@openzeppelin/': 'node_modules/@openzeppelin/' },
+		['lib', 'node_modules'],
+		fao,
+		false, // async
+	),
+)
+
+for (const [id, module] of modules) {
+	console.log(id, '→', module.importedIds)
+}
+```
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `absolutePath` | `string` | Absolute path to the entry file |
+| `rawCode` | `string` | Its source text — passed in so callers can supply unsaved editor buffers |
+| `remappings` | `Record<string, string>` | Import prefix rewrites |
+| `libs` | `readonly string[]` | Directories to search for non-relative imports |
+| `fao` | `FileAccessObject` | Filesystem abstraction |
+| `sync` | `boolean` | Read files synchronously. Pass `true` from a synchronous caller; the returned Effect is then safe for `runSync`. |
+
+**Returns** `Effect<Map<string, ModuleInfo>, ModuleFactoryError, never>` — the
+whole graph keyed by absolute path, entry included.
+
+**Throws** (as an Effect failure) `ModuleFactoryError`, which wraps:
+
+- `CouldNotResolveImportError` — an import matched no relative path, remapping
+  or lib directory. This is by far the most common one; check your
+  [`remappings` and `libs`](/guides/configuration).
+- `ReadFileError` — a file in the graph could not be read.
+- `InvalidRemappingsError` — a remapping was malformed.
+
+## `ModuleInfo`
+
+Deliberately shaped like Rollup's
+[`getModuleInfo`](https://rollupjs.org/plugin-development/#this-getmoduleinfo)
+result:
+
+```ts
+interface ModuleInfo {
+	/** Absolute path of the module */
+	id: string
+	/** The original source text, or null if unavailable */
+	rawCode: string | null
+	/** Source with imports rewritten to resolved absolute paths */
+	code: string | null
+	/** Absolute paths of the modules this one imports directly */
+	importedIds: string[]
+}
+```
+
+`code` is what gets handed to solc; `rawCode` is what the user actually wrote.
+The distinction matters when reporting errors — you want line numbers from
+`rawCode`.
+
+## Resolution order
+
+For each import statement:
+
+1. If the specifier is relative (`./`, `../`), resolve it against the importing
+   file's directory.
+2. Otherwise, check `remappings` for the longest matching prefix and rewrite.
+3. Otherwise, try each entry in `libs` in order.
+4. If nothing matched, fail with `CouldNotResolveImportError`.
+
+Remapping keys are prefixes, not globs — `"@openzeppelin"` (no trailing slash)
+also matches `@openzeppelin-upgradeable`. Include the trailing slash.
+
+## Types
+
+```ts
+import type {
+	FileAccessObject,
+	Logger,
+	ModuleFactoryError,
+	ModuleInfo,
+} from '@tevm/resolutions'
+```
+
+`ResolvedImport` — the per-import resolution record — is also exported:
+
+```ts
+type ResolvedImport = {
+	/** The specifier as written in the Solidity source */
+	original: string
+	/** The absolute path it resolved to */
+	absolute: string
+	/** The specifier as rewritten into the emitted source */
+	updated: string
+}
+```
+
+## `@tevm/resolutions-rs`
+
+A Rust implementation of the same resolution, distributed as prebuilt native
+binaries. Same semantics, lower overhead. The JavaScript package remains the
+reference implementation and the portable fallback — reach for the Rust one only
+if you have measured that resolution is your bottleneck.

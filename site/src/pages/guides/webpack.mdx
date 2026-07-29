@@ -1,0 +1,123 @@
+---
+title: webpack
+description: Import Solidity files in a webpack build with @tevm/webpack-plugin.
+---
+
+# webpack
+
+```bash
+npm install --save-dev @tevm/webpack-plugin @tevm/ts-plugin
+npm install @tevm/contract
+```
+
+## Configuration
+
+The webpack export is a **constructor**, not a factory — note the capital `W`
+and the `new`:
+
+```js [webpack.config.js]
+const { WebpackPluginTevm } = require('@tevm/webpack-plugin')
+
+module.exports = {
+	entry: './src/index.ts',
+	output: {
+		filename: 'bundle.js',
+		path: `${__dirname}/dist`,
+	},
+	module: {
+		rules: [{ test: /\.tsx?$/, use: 'ts-loader', exclude: /node_modules/ }],
+	},
+	resolve: {
+		extensions: ['.ts', '.tsx', '.js'],
+	},
+	plugins: [new WebpackPluginTevm({ solc: '0.8.30' })],
+}
+```
+
+ESM config files work too:
+
+```js [webpack.config.mjs]
+import { WebpackPluginTevm } from '@tevm/webpack-plugin'
+
+export default {
+	entry: './src/index.ts',
+	plugins: [new WebpackPluginTevm()],
+}
+```
+
+The only option is `solc`, the Solidity compiler version. Remappings, library
+paths and Foundry integration come from
+[`tevm.config.json`](/guides/configuration).
+
+## Complete example
+
+```solidity [src/contracts/Registry.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Registry {
+    mapping(bytes32 => address) private entries;
+
+    function register(bytes32 key, address value) public {
+        entries[key] = value;
+    }
+
+    function lookup(bytes32 key) public view returns (address) {
+        return entries[key];
+    }
+}
+```
+
+```ts [src/index.ts]
+import { createMemoryClient } from 'tevm'
+import { stringToHex } from 'viem'
+import { Registry } from './contracts/Registry.s.sol'
+
+const key = stringToHex('weth', { size: 32 })
+const weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' as const
+
+const client = createMemoryClient()
+const registry = await client.deployContract(Registry)
+await client.mine({ blocks: 1 })
+
+await client.writeContract(registry.write.register(key, weth))
+await client.mine({ blocks: 1 })
+
+console.log(await client.readContract(registry.read.lookup(key)))
+// 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+```
+
+## Next.js
+
+Next.js runs its own type check over the whole project during `next build`, and
+that type check does not load TypeScript language service plugins. `.sol`
+imports therefore type-check in your editor but fail in `next build`.
+
+Two options:
+
+1. Generate real `.ts` modules ahead of time with the `tevm` CLI's codegen, so
+   there is nothing exotic left for Next's type check to see. The plugin defers
+   to sidecar modules automatically, so both setups can coexist.
+2. Turn off the build-time type check and run `tsc --noEmit` in CI instead:
+
+```js [next.config.js]
+const { WebpackPluginTevm } = require('@tevm/webpack-plugin')
+
+module.exports = {
+	typescript: {
+		// `tsc --noEmit` runs in CI, where the Tevm ts-plugin is loaded.
+		ignoreBuildErrors: true,
+	},
+	webpack: (config) => {
+		config.plugins.push(new WebpackPluginTevm())
+		return config
+	},
+}
+```
+
+## Notes
+
+- The plugin runs before other loaders, so webpack's own module rules never see
+  a raw `.sol` file.
+- Solidity files in the import graph are registered as build dependencies, so
+  `webpack --watch` and `webpack-dev-server` rebuild on Solidity changes.

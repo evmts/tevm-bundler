@@ -1,0 +1,141 @@
+---
+title: Caching
+description: What lives in .tevm, how cache invalidation works, and when to clear it.
+---
+
+# Caching
+
+Compiling Solidity is slow enough that doing it on every build, every test run,
+and every keystroke in your editor would be unusable. [`@tevm/bundler-cache`](/api/bundler-cache)
+stores artifacts on disk so that solc runs only when something that affects the
+output has changed.
+
+## What is stored
+
+The cache directory — `.tevm` by default, configurable via
+[`cacheDir`](/guides/configuration#cachedir) — mirrors your source tree. For
+`contracts/Token.sol` you get:
+
+```
+.tevm/
+└── contracts/
+    └── Token.sol/
+        ├── artifacts.json   # solc artifacts: ABI, bytecode, userdoc, AST
+        ├── contract.d.ts    # TypeScript declarations (used by the ts-plugin)
+        ├── contract.mjs     # generated ES module (used by the bundlers)
+        └── metadata.json    # cache version + compile fingerprint
+```
+
+Because the editor and the build read the same `artifacts.json`, opening a file
+in VS Code warms the cache for the next `vite build`, and vice versa.
+
+Add it to `.gitignore`:
+
+```bash [.gitignore]
+.tevm/
+```
+
+## How invalidation works
+
+Two things decide whether a cache entry is still valid.
+
+**1. The compile fingerprint.** A stable JSON hash over:
+
+- the parts of the resolved config that affect compilation — `foundryProject`,
+  `jsonAsConst`, `libs` and `remappings`,
+- the solc version actually in use,
+- whether the AST and bytecode were requested.
+
+Object keys are sorted before hashing, so reordering your `remappings` does not
+invalidate anything.
+
+Notably, `cacheDir` and `debug` are *not* part of the fingerprint — they do not
+change compiler output.
+
+**2. File modification times.** Every file in the resolved import graph is
+stat'd. If any source is newer than the cached artifact, the entry is stale.
+This is what makes editing a deeply nested library file invalidate every
+contract that transitively imports it, and nothing else.
+
+**3. The cache version.** A version string is written into `metadata.json`. When
+the caching format changes in a way that would make old entries wrong, that
+string is bumped and every existing entry is ignored.
+
+## Sharing one cache directory
+
+`cacheDir` may be absolute:
+
+```json [tevm.config.json]
+{
+	"cacheDir": "/tmp/tevm-cache"
+}
+```
+
+Absolute cache directories are namespaced per project — entries land under
+`__projects__/<hash-of-cwd>/` — so several checkouts of the same repository, or
+several different repositories, can safely point at one directory without
+colliding.
+
+Solidity files that live *outside* the project root (a linked workspace package,
+for instance) are stored under `__external__/` with their full path preserved,
+rather than escaping the cache directory with `../` segments.
+
+## CI
+
+Caching `.tevm` between CI runs is worthwhile on any project with more than a
+trivial amount of Solidity. With GitHub Actions:
+
+```yaml [.github/workflows/ci.yml]
+- name: Cache Tevm artifacts
+  uses: actions/cache@v4
+  with:
+    path: .tevm
+    key: tevm-${{ runner.os }}-${{ hashFiles('**/*.sol', 'tevm.config.json', 'remappings.txt') }}
+    restore-keys: |
+      tevm-${{ runner.os }}-
+```
+
+The fingerprint check means a restored-but-stale cache is safe: worst case it is
+ignored and solc runs.
+
+## Clearing it
+
+```bash
+rm -rf .tevm
+```
+
+You should not normally need to. If deleting the cache fixes a problem, that is
+a bug worth [reporting](https://github.com/evmts/tevm-bundler/issues) — please
+include the contents of `metadata.json` for the affected contract.
+
+For a look at what the compiler is doing, turn on
+[`debug`](/guides/configuration#debug), which writes extra diagnostic files into
+the same directory.
+
+## Using the cache directly
+
+```ts
+import { createCache } from '@tevm/bundler-cache'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+
+const fao = {
+	existsSync,
+	exists: async (path: string) => existsSync(path),
+	readFile: (path: string, encoding: BufferEncoding) => readFile(path, { encoding }),
+	readFileSync,
+	writeFileSync,
+	writeFile,
+	statSync,
+	stat,
+	mkdirSync,
+	mkdir,
+}
+
+const cache = createCache('.tevm', fao, process.cwd())
+
+const artifacts = await cache.readArtifacts('./contracts/Token.sol')
+console.log(artifacts?.artifacts ? Object.keys(artifacts.artifacts) : 'cache miss')
+```
+
+The full surface is documented in [`@tevm/bundler-cache`](/api/bundler-cache).

@@ -1,0 +1,129 @@
+---
+title: '@tevm/lsp & VS Code'
+description: The standalone Tevm language server and the VS Code extension that bundles it.
+---
+
+# `@tevm/lsp` and the VS Code extension
+
+For editors without a TypeScript language service plugin story, `@tevm/lsp` is a
+[Volar](https://volarjs.dev)-based server exposing Tevm's Solidity support over
+the Language Server Protocol.
+
+If you use VS Code and only work in TypeScript, [`@tevm/ts-plugin`](/api/ts-plugin)
+is the simpler answer.
+
+## `@tevm/lsp`
+
+```bash
+npm install --save-dev @tevm/lsp
+```
+
+The package installs a `tevm-lsp` binary that speaks LSP over stdio:
+
+```bash
+npx tevm-lsp --stdio
+```
+
+### Architecture
+
+The server is assembled from three pieces.
+
+**A language plugin** that recognises Solidity files and turns them into Volar
+virtual code:
+
+```ts
+const language: LanguagePlugin<any, SolFile> = {
+	getLanguageId(uri) {
+		return uri.path.endsWith('.sol') ? 'solidity' : undefined
+	},
+	createVirtualCode(uri, languageId, snapshot) {
+		if (languageId === 'solidity' || uri.path.endsWith('.sol')) {
+			return new SolFile(uri.fsPath, snapshot)
+		}
+		return undefined
+	},
+	updateVirtualCode(_uri, solfile, snapshot) {
+		solfile.update(snapshot)
+		return solfile
+	},
+}
+```
+
+A `SolFile` is the virtual code the rest of the server sees — the generated
+TypeScript view of a Solidity file, kept in sync with the editor's buffer.
+
+**Service plugins** — a Solidity diagnostic provider plus the full
+`volar-service-typescript` stack, so TypeScript features work over the virtual
+code.
+
+**Watched extensions** — `sol`, `js`, `ts`, `tsx`, `jsx`, `json`. Changes to any
+of these refresh the server's view without a restart.
+
+### `plugin()`
+
+```ts
+import { plugin } from '@tevm/lsp'
+
+const { languagePlugins, servicePlugins, watchFileExtensions } = plugin()
+```
+
+**Returns** the three arrays above. Use this if you are embedding the language
+support in your own Volar-based server rather than running `tevm-lsp` as a
+separate process.
+
+### Editor configuration
+
+Neovim, using the built-in LSP client:
+
+```lua
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'solidity', 'typescript', 'typescriptreact', 'javascript' },
+  callback = function(args)
+    vim.lsp.start({
+      name = 'tevm-lsp',
+      cmd = { 'npx', 'tevm-lsp', '--stdio' },
+      root_dir = vim.fs.dirname(
+        vim.fs.find({ 'tevm.config.json', 'package.json', '.git' }, { upward = true })[1]
+      ),
+    }, { bufnr = args.buf })
+  end,
+})
+```
+
+Helix:
+
+```toml [languages.toml]
+[language-server.tevm-lsp]
+command = "npx"
+args = ["tevm-lsp", "--stdio"]
+
+[[language]]
+name = "solidity"
+language-servers = ["tevm-lsp"]
+```
+
+Zed and Emacs `lspce`/`eglot` follow the same shape: run `npx tevm-lsp --stdio`
+and set the root to whichever directory holds your `tevm.config.json`.
+
+## `@tevm/vscode` — Tevm Language Features
+
+The VS Code extension bundles the language server and a
+`vscode-languageclient` front end. It requires VS Code 1.82 or newer and
+activates on Solidity, JavaScript and TypeScript files.
+
+Build a `.vsix` from source:
+
+```bash
+pnpm --filter @tevm/vscode pack
+```
+
+The extension is not a replacement for [`@tevm/ts-plugin`](/api/ts-plugin) —
+the plugin integrates with the TypeScript language service you are already
+running for `.ts` files, while the extension provides the Solidity-side view.
+Most projects install both.
+
+## Configuration
+
+Both the server and the extension read the same
+[`tevm.config.json`](/guides/configuration) and the same `.tevm` cache as the
+bundlers. There is no LSP-specific configuration to set.

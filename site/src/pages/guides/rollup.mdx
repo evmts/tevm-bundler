@@ -1,0 +1,81 @@
+---
+title: Rollup
+description: Import Solidity files in a Rollup build with @tevm/rollup-plugin.
+---
+
+# Rollup
+
+```bash
+npm install --save-dev @tevm/rollup-plugin @tevm/ts-plugin
+npm install @tevm/contract
+```
+
+## Configuration
+
+```ts [rollup.config.ts]
+import { rollupPluginTevm } from '@tevm/rollup-plugin'
+import nodeResolve from '@rollup/plugin-node-resolve'
+import { defineConfig } from 'rollup'
+
+export default defineConfig({
+	input: 'src/index.ts',
+	output: {
+		dir: 'dist',
+		format: 'esm',
+	},
+	plugins: [rollupPluginTevm({ solc: '0.8.30' }), nodeResolve()],
+})
+```
+
+`rollupPluginTevm` accepts one optional option, `solc`, naming the Solidity
+compiler version. Every other setting lives in
+[`tevm.config.json`](/guides/configuration).
+
+Place the Tevm plugin before resolver plugins. It declares `enforce: 'pre'`,
+which Rollup ignores, so ordering in the array is what actually matters here.
+
+## Complete example
+
+```solidity [src/contracts/Token.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+interface Token {
+    function balanceOf(address owner) external view returns (uint256);
+    function transfer(address to, uint256 amount) external returns (bool);
+}
+```
+
+```ts [src/index.ts]
+import { createPublicClient, http } from 'viem'
+import { mainnet } from 'viem/chains'
+import { Token } from './contracts/Token.sol'
+
+const client = createPublicClient({
+	chain: mainnet,
+	transport: http(),
+})
+
+const dai = Token.withAddress('0x6B175474E89094C44Da98b954EedeAC495271d0F')
+
+export const balanceOf = async (owner: `0x${string}`) =>
+	client.readContract(dai.read.balanceOf(owner))
+```
+
+This contract is declared as an `interface` and imported from a plain `.sol`
+file, so no bytecode is produced — which is correct, because DAI is already
+deployed and all we need is the ABI. Use `.s.sol` when you need to deploy.
+
+## Watch mode
+
+The plugin calls `this.addWatchFile` for every resolved Solidity dependency
+outside `node_modules`, so `rollup -w` rebuilds when any file in the import
+graph changes.
+
+## Notes
+
+- The plugin only claims a `.sol` file when there is no sidecar module beside it
+  (`Counter.sol.ts`, `.js`, `.mjs`, `.cjs` or `.d.ts`). If you generate modules
+  ahead of time, those win.
+- Output is ESM. For a CommonJS bundle, let Rollup do the conversion via its
+  `output.format` rather than asking the plugin for CJS.

@@ -1,0 +1,171 @@
+---
+title: Building a custom integration
+description: Drive the Tevm compiler pipeline directly from your own tool.
+---
+
+# Building a custom integration
+
+If your build tool has no adapter here — or you are writing a script, a test
+harness, or a code generator — you can call the same core the plugins call.
+
+There are two levels to choose from.
+
+## Level 1: `@tevm/unplugin`
+
+[unplugin](https://unplugin.unjs.io) targets Vite, Rollup, webpack, Rspack,
+esbuild and Farm from one definition. Every adapter in this repository is a
+two-line wrapper around `tevmUnplugin`. If your tool is one unplugin supports,
+this is all you need:
+
+```ts [my-plugin.ts]
+import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
+
+export const myTevmPlugin = createUnplugin(tevmUnplugin)
+
+// Then, for whichever build tool you are targeting:
+export const vitePlugin = myTevmPlugin.vite
+export const farmPlugin = myTevmPlugin.farm
+```
+
+`tevmUnplugin` takes the same `{ solc }` option the published plugins take.
+
+## Level 2: `@tevm/base-bundler`
+
+For anything else — a language server, a codemod, a test runner, a script that
+emits `.ts` files — drive [`@tevm/base-bundler`](/api/base-bundler) yourself.
+
+`bundler()` needs six things: a resolved config, a logger, a file access object,
+a solc instance, a cache, and (optionally) the name of the contract package to
+import from.
+
+```ts [compile-contracts.ts]
+import { bundler, getContractPath } from '@tevm/base-bundler'
+import { createCache } from '@tevm/bundler-cache'
+import { defaultConfig, loadConfig } from '@tevm/config'
+import { createSolc } from '@tevm/solc'
+import { catchTag, logWarning, map, runPromise } from 'effect/Effect'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+
+const cwd = process.cwd()
+
+// 1. A file access object. Swap this out to run in a browser, over a virtual
+//    filesystem, or against an editor's in-memory buffers.
+const fao = {
+	existsSync,
+	exists: async (path: string) => existsSync(path),
+	readFile: (path: string, encoding: BufferEncoding) => readFile(path, { encoding }),
+	readFileSync,
+	writeFileSync,
+	writeFile,
+	statSync,
+	stat,
+	mkdirSync,
+	mkdir,
+}
+
+// 2. Resolve tevm.config.json, falling back to defaults when it is absent.
+const config = await runPromise(
+	loadConfig(cwd).pipe(
+		catchTag('FailedToReadConfigError', () =>
+			logWarning('No tevm.config.json found, using defaults').pipe(map(() => defaultConfig)),
+		),
+	),
+)
+
+// 3. A pinned solc, a cache, and the contract package to generate imports for.
+const solc = await createSolc('0.8.30')
+const cache = createCache(config.cacheDir, fao, cwd)
+const contractPackage = getContractPath(cwd)
+
+const tevm = bundler(config, console, fao, solc, cache, contractPackage)
+
+// 4. Ask for whichever representation you need.
+const { code, modules, solcOutput } = await tevm.resolveEsmModule(
+	'./contracts/Counter.s.sol',
+	cwd,
+	false, // includeAst
+	true, // includeBytecode
+)
+
+console.log(code) // the generated ES module source
+console.log(Object.keys(modules)) // every file in the import graph
+console.log(solcOutput?.errors ?? []) // solc diagnostics, if any
+```
+
+### Choosing an output format
+
+`bundler()` returns eight resolvers — four formats, each in async and sync form:
+
+| Method | Emits | Typical caller |
+| --- | --- | --- |
+| `resolveEsmModule` / `Sync` | ES module | bundler plugins |
+| `resolveCjsModule` / `Sync` | CommonJS module | Node.js `require` hooks |
+| `resolveTsModule` / `Sync` | TypeScript source | codegen |
+| `resolveDts` / `Sync` | `.d.ts` declarations | the TypeScript plugin |
+
+All eight take `(module, basedir, includeAst, includeBytecode)` and return a
+`BundlerResult` with `code`, `modules`, `solcInput`, `solcOutput` and `asts`.
+
+Use the sync variants only where you have to — the TypeScript language service
+and Bun's resolver both require synchronous resolution, which is why they exist.
+
+### Registering watch dependencies
+
+`modules` is the resolved import graph, keyed by absolute path. Feed it to
+whatever watch mechanism your tool has, skipping `node_modules`:
+
+```ts
+for (const module of Object.values(modules)) {
+	if (module.id.includes('node_modules')) continue
+	myWatcher.add(module.id)
+}
+```
+
+## Level 3: individual packages
+
+If you want only one stage, the packages compose on their own:
+
+- resolve the import graph but do not compile —
+  [`@tevm/resolutions`](/api/resolutions);
+- compile but generate no code — [`@tevm/compiler`](/api/compiler);
+- generate code from artifacts you already have —
+  [`@tevm/runtime`](/api/runtime);
+- fetch a specific solc build — [`@tevm/solc`](/api/solc).
+
+```ts [generate-from-artifacts.ts]
+import { generateRuntime } from '@tevm/runtime'
+import { runPromise } from 'effect/Effect'
+
+const artifacts = {
+	Counter: {
+		contractName: 'Counter',
+		abi: [
+			{
+				inputs: [],
+				name: 'count',
+				outputs: [{ type: 'uint256', name: '' }],
+				stateMutability: 'view',
+				type: 'function',
+			},
+		],
+		userdoc: {},
+		evm: { bytecode: { object: '0x' }, deployedBytecode: { object: '0x' } },
+	},
+} as const
+
+const code = await runPromise(
+	generateRuntime(artifacts, 'ts', false, '@tevm/contract'),
+)
+
+console.log(code)
+```
+
+## A note on Effect
+
+Several of these packages return
+[Effect](https://effect.website) values rather than promises — `loadConfig` and
+`generateRuntime`, most visibly. Run them with `runPromise` (or `runSync` where
+the effect is synchronous) as shown above. You do not need to adopt Effect in
+your own code; see [`@tevm/effect`](/api/effect) for what the pipeline uses it
+for.

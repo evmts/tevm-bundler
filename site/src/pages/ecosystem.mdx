@@ -1,0 +1,97 @@
+---
+title: Ecosystem & repo layout
+description: How tevm-bundler relates to tevm core and the other split repositories.
+---
+
+# Ecosystem & repo layout
+
+Tevm used to live in a single monorepo. It is being split into focused
+repositories that release independently. This page explains which repository
+owns what, and why you might depend on more than one.
+
+## This repository — `evmts/tevm-bundler`
+
+Everything involved in turning Solidity into JavaScript modules, plus the editor
+tooling that shares that pipeline.
+
+| Package | What it is |
+| --- | --- |
+| `@tevm/vite-plugin` | Vite adapter |
+| `@tevm/rollup-plugin` | Rollup adapter |
+| `@tevm/esbuild-plugin` | esbuild adapter |
+| `@tevm/webpack-plugin` | webpack adapter |
+| `@tevm/rspack-plugin` | Rspack adapter |
+| `@tevm/bun-plugin` | Bun adapter |
+| `@tevm/requirejs-plugin` | RequireJS loader plugin |
+| `@tevm/unplugin` | The single plugin definition all adapters wrap |
+| `@tevm/base-bundler` | Orchestrates cache → resolve → compile → codegen |
+| `@tevm/config` | `tevm.config.json`, Foundry and tsconfig resolution |
+| `@tevm/resolutions` | Solidity import-graph resolution (JS) |
+| `@tevm/resolutions-rs` | Native Rust implementation of the same |
+| `@tevm/compiler` | solc orchestration and artifact extraction |
+| `@tevm/solc` | Versioned solc loader |
+| `@tevm/solc-rs` | Rust wrapper around solc, shipped as native binaries |
+| `@tevm/runtime` | Code generation (JS) |
+| `@tevm/runtime-rs` | Native Rust implementation of the same |
+| `@tevm/bundler-cache` | Filesystem artifact cache |
+| `@tevm/ts-plugin` | TypeScript language service plugin |
+| `@tevm/lsp` | Standalone language server |
+| `@tevm/vscode` | VS Code extension |
+| `@tevm/effect` | Small Effect helpers used across the pipeline |
+
+The `-rs` packages are Rust ports of `@tevm/resolutions` and `@tevm/runtime`,
+distributed as prebuilt native binaries. They implement the same behaviour with
+lower overhead; the JavaScript versions remain the reference implementations and
+the portable fallback.
+
+## `evmts/tevm-monorepo` — Tevm core
+
+The in-process Ethereum node and everything around it: `tevm`,
+`@tevm/memory-client`, `@tevm/contract`, `@tevm/actions`, the VM, state, and
+blockchain packages.
+
+The relationship is deliberately one-directional at build time:
+
+- The bundler **generates code that imports** `createContract` from
+  `@tevm/contract` (or `tevm/contract` if you depend on `tevm`). That is the
+  only runtime coupling.
+- The bundler does **not** require you to run a Tevm node. A generated contract
+  object is a plain typed ABI wrapper and works fine with viem, wagmi or ethers
+  against any chain.
+- Tevm core does **not** require the bundler. You can write ABIs by hand, or use
+  the `tevm` CLI's codegen, and never install a plugin from this repository.
+
+Splitting them means a fix to the webpack adapter does not force a release of
+the EVM, and vice versa. Documentation for core lives at
+[tevm.sh](https://tevm.sh).
+
+## Other split repositories
+
+| Repository | Site | Contents |
+| --- | --- | --- |
+| `evmts/tevm-utils` | [utils.tevm.sh](https://utils.tevm.sh) | Low-level Ethereum utilities shared by core and the bundler |
+| `evmts/tevm-contract` | [contract.tevm.sh](https://contract.tevm.sh) | `createContract` and the `Contract` type the generated modules use |
+| `evmts/tevm-cli` | [cli.tevm.sh](https://cli.tevm.sh) | The `tevm` command line tool |
+
+Two things that used to sit next to the bundler are explicitly **not** here:
+
+- **whatsabi integration** has been folded into Voltaire and the standalone
+  package is being removed. Do not depend on it.
+- **MUD support** and **tevm-run** have moved to their own repositories.
+
+## Choosing what to install
+
+- *I want typed Solidity imports in my app.* One adapter from this repository
+  (`@tevm/vite-plugin` or similar), plus `@tevm/ts-plugin`, plus
+  `@tevm/contract` or `tevm` at runtime.
+- *I want to run the EVM in-process for tests.* `tevm` from core. Add a bundler
+  plugin only if you also want `.sol` imports.
+- *I am building tooling on top of the compiler.* Depend on
+  [`@tevm/base-bundler`](/api/base-bundler) and its dependencies directly; see
+  [Building a custom integration](/guides/custom-integration).
+
+## Versioning
+
+Every package in this repository is versioned and published together from
+changesets, currently on the `1.0.0-rc.151` line. Packages in other repositories
+version independently, so do not assume a matching version number across repos.

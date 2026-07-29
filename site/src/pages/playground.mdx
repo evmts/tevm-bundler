@@ -1,0 +1,17 @@
+---
+title: Solidity import playground
+description: Watch a .sol import become a typed TypeScript contract object.
+---
+
+import { SolImportTransform } from '../components/SolImportTransform'
+
+# Solidity import playground
+
+This is what the Tevm bundler does to every `.sol` import, on every build and in
+your editor. Step through the three panes:
+
+<SolImportTransform />
+
+The same pipeline runs in three places — your bundler plugin at build time, the
+TypeScript plugin in your editor, and the LSP for editors without TypeScript —
+so the types you hover over are exactly the types your build emits.

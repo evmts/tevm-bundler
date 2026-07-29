@@ -1,0 +1,148 @@
+---
+title: Vite
+description: Import Solidity files in a Vite project with @tevm/vite-plugin.
+---
+
+# Vite
+
+```bash
+npm install --save-dev @tevm/vite-plugin @tevm/ts-plugin
+npm install @tevm/contract
+```
+
+## Configuration
+
+```ts [vite.config.ts]
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+	plugins: [react(), vitePluginTevm({ solc: '0.8.30' })],
+})
+```
+
+`vitePluginTevm` accepts a single optional option:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `solc` | a solc version string, e.g. `'0.8.30'` | the version bundled with the installed `solc` package | Which Solidity compiler to use. Must be one of the releases known to [`@tevm/solc`](/api/solc). |
+
+Everything else — remappings, library paths, Foundry, the cache directory —
+comes from [`tevm.config.json`](/guides/configuration), because the TypeScript
+plugin and language server need to read the same settings and they have no
+access to your Vite config.
+
+The plugin sets `enforce: 'pre'` so it claims `.sol` files before any other
+plugin has a chance to choke on them.
+
+## Complete example
+
+```solidity [src/contracts/Greeter.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Greeter {
+    string private greeting;
+
+    constructor() {
+        greeting = "hello";
+    }
+
+    function greet() public view returns (string memory) {
+        return greeting;
+    }
+
+    function setGreeting(string calldata next) public {
+        greeting = next;
+    }
+}
+```
+
+```tsx [src/App.tsx]
+import { createMemoryClient } from 'tevm'
+import { useEffect, useState } from 'react'
+import { Greeter } from './contracts/Greeter.s.sol'
+
+export function App() {
+	const [greeting, setGreeting] = useState<string>('')
+
+	useEffect(() => {
+		const run = async () => {
+			const client = createMemoryClient()
+			const deployed = await client.deployContract(Greeter)
+			await client.mine({ blocks: 1 })
+
+			await client.writeContract(deployed.write.setGreeting('hello from solidity'))
+			await client.mine({ blocks: 1 })
+
+			setGreeting(await client.readContract(deployed.read.greet()))
+		}
+		void run()
+	}, [])
+
+	return <p>{greeting}</p>
+}
+```
+
+## Hot reloading
+
+The plugin registers every file in the resolved import graph as a watch
+dependency, excluding files under `node_modules`. Editing `Greeter.s.sol`, or
+any Solidity file it imports, triggers a recompile and an HMR update for the
+modules that depend on it.
+
+## Vitest
+
+Vitest reuses your Vite config, so `.sol` imports work in tests with no extra
+setup:
+
+```ts [src/greeter.test.ts]
+import { createMemoryClient } from 'tevm'
+import { expect, test } from 'vitest'
+import { Greeter } from './contracts/Greeter.s.sol'
+
+test('greets', async () => {
+	const client = createMemoryClient()
+	const deployed = await client.deployContract(Greeter)
+	await client.mine({ blocks: 1 })
+
+	expect(await client.readContract(deployed.read.greet())).toBe('hello')
+})
+```
+
+If your Vitest config is a separate file, make sure it includes the plugin:
+
+```ts [vitest.config.ts]
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+	plugins: [vitePluginTevm()],
+})
+```
+
+## SSR and pre-bundling
+
+Solidity modules are generated at load time and must not be pre-bundled as
+external dependencies. If you import `.sol` files from a package in
+`node_modules`, exclude that package from dependency optimisation:
+
+```ts [vite.config.ts]
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+	plugins: [vitePluginTevm()],
+	optimizeDeps: {
+		exclude: ['@my-org/contracts'],
+	},
+})
+```
+
+## Next steps
+
+- [Editor & TypeScript setup](/guides/editor-setup) — make `tsc` and your editor
+  agree with the build.
+- [Configuration](/guides/configuration) — `tevm.config.json` reference.
+- [Troubleshooting](/guides/troubleshooting).

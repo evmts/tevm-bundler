@@ -1,0 +1,149 @@
+---
+title: '@tevm/config'
+description: Resolve tevm.config.json, Foundry and tsconfig settings into one config object.
+---
+
+# `@tevm/config`
+
+```bash
+npm install --save-dev @tevm/config
+```
+
+One place decides what a project's Solidity setup looks like. The bundlers, the
+TypeScript plugin and the language server all call into here, which is why they
+never disagree about where an import points.
+
+For the file format itself, see [Configuration](/guides/configuration).
+
+## `loadConfig(configFilePath)`
+
+```ts
+import { loadConfig } from '@tevm/config'
+import { runPromise } from 'effect/Effect'
+
+const config = await runPromise(loadConfig(process.cwd()))
+
+console.log(config.cacheDir) // '.tevm'
+console.log(config.libs) // ['lib', 'node_modules']
+console.log(config.remappings) // { '@openzeppelin/': 'node_modules/@openzeppelin/' }
+```
+
+**Parameters** — `configFilePath: string`, the directory to resolve from
+(normally your project root).
+
+**Returns** `Effect<ResolvedCompilerConfig, LoadConfigError, never>`.
+
+**Throws** (as an Effect failure) `LoadConfigError`, whose `_tag` names the
+underlying cause:
+
+| `_tag` | Meaning |
+| --- | --- |
+| `FailedToReadConfigError` | No `tevm.config.json` and no Tevm plugin entry in `tsconfig.json` |
+| `InvalidJsonConfigError` | `tevm.config.json` is not valid JSON |
+| `InvalidConfigError` | The config parsed but failed validation |
+| `FoundryNotFoundError` | `foundryProject` set but `forge config --json` could not run |
+| `FoundryConfigError` | `forge` ran but its output could not be parsed |
+| `InvalidRemappingsError` | Remappings were not in `prefix=target` form |
+
+`FailedToReadConfigError` is not fatal in practice — every plugin catches it and
+falls back to defaults:
+
+```ts
+import { defaultConfig, loadConfig } from '@tevm/config'
+import { catchTag, logWarning, map, runPromise } from 'effect/Effect'
+
+const config = await runPromise(
+	loadConfig(process.cwd()).pipe(
+		catchTag('FailedToReadConfigError', () =>
+			logWarning('No tevm.config.json found, using defaults').pipe(map(() => defaultConfig)),
+		),
+	),
+)
+```
+
+### What it merges
+
+1. `tevm.config.json`, or the `@tevm/ts-plugin` entry in `tsconfig.json` as a
+   fallback — including converting `compilerOptions.paths` into Solidity
+   remappings, honouring `baseUrl`;
+2. `remappings.txt`, if present;
+3. `forge config --json`, when `foundryProject` is truthy;
+4. defaults, for anything still unset.
+
+## `defaultConfig`
+
+```ts
+import { defaultConfig } from '@tevm/config'
+
+// {
+//   jsonAsConst: [],
+//   foundryProject: false,
+//   remappings: {},
+//   libs: [],
+//   debug: false,
+//   cacheDir: '.tevm',
+// }
+```
+
+## `defineConfig(configFactory)`
+
+Type-safe authoring of a config from JavaScript rather than JSON.
+
+```ts [tevm.config.ts]
+import { defineConfig } from '@tevm/config'
+
+export default defineConfig(() => ({
+	foundryProject: true,
+	libs: ['lib'],
+	remappings: {
+		'@openzeppelin/': 'node_modules/@openzeppelin/',
+	},
+}))
+```
+
+**Parameters** — `configFactory: () => CompilerConfig`. A function, so config can
+be computed at load time.
+
+**Returns** `{ configFn: (configFilePath: string) => Effect<ResolvedCompilerConfig, DefineConfigError, never> }`.
+
+**Throws** (as an Effect failure) `DefineConfigError`, wrapping either
+`ConfigFnThrowError` (your factory threw) or `InvalidConfigError` (the object it
+returned failed validation).
+
+## Types
+
+### `CompilerConfig`
+
+What a user writes. Every field optional.
+
+```ts
+type CompilerConfig = {
+	jsonAsConst?: string | readonly string[]
+	foundryProject?: boolean | string
+	libs?: readonly string[]
+	remappings?: Record<string, string>
+	debug?: boolean
+	cacheDir?: string
+}
+```
+
+### `ResolvedCompilerConfig`
+
+What the pipeline consumes. Defaults filled in, so only `debug` stays optional.
+
+```ts
+type ResolvedCompilerConfig = {
+	jsonAsConst: readonly string[]
+	foundryProject: boolean | string
+	libs: readonly string[]
+	remappings: Record<string, string>
+	debug?: boolean
+	cacheDir: string
+}
+```
+
+### `ConfigFactory`
+
+```ts
+type ConfigFactory = () => CompilerConfig
+```

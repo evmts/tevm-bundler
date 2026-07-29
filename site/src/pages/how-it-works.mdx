@@ -1,0 +1,108 @@
+---
+title: How it works
+description: What happens between `import './Counter.sol'` and a typed Contract object.
+---
+
+# How it works
+
+Every Tevm bundler plugin is a thin adapter. The interesting work happens in a
+shared core, which is why Vite, webpack, Bun and the TypeScript language service
+all agree about what a `.sol` import means.
+
+## The pipeline
+
+```
+your build tool
+      │  "load ./Counter.s.sol"
+      ▼
+@tevm/<tool>-plugin      adapter: maps the tool's hooks onto the unplugin
+      ▼
+@tevm/unplugin           one plugin definition, seven build tools
+      ▼
+@tevm/base-bundler       orchestrates cache → resolve → compile → codegen
+      │
+      ├── @tevm/config          loads tevm.config.json + foundry.toml + tsconfig paths
+      ├── @tevm/bundler-cache   .tevm/ artifact cache, keyed on a compile fingerprint
+      ├── @tevm/resolutions     walks the Solidity import graph, applies remappings/libs
+      ├── @tevm/compiler        drives solc over the graph, extracts ABI/bytecode/AST
+      │     └── @tevm/solc      downloads and pins a specific solc version
+      └── @tevm/runtime         emits the .ts / .mjs / .cjs / .d.ts module text
+      ▼
+a module exporting `createContract(...)` for each contract in the file
+```
+
+### 1. Configuration
+
+[`@tevm/config`](/api/config) resolves your `tevm.config.json`, merges in
+Foundry remappings and library paths when `foundryProject` is set, and fills in
+defaults. The result is a `ResolvedCompilerConfig` — every downstream package
+takes this as its first argument, so there is exactly one place where "what does
+this project's Solidity setup look like" is decided.
+
+### 2. Cache lookup
+
+[`@tevm/bundler-cache`](/api/bundler-cache) computes a fingerprint over the
+resolved config, the solc version, and the contents of every file in the import
+graph. On a hit, the cached artifacts are returned and solc never runs. See
+[Caching](/guides/caching).
+
+### 3. Resolution
+
+[`@tevm/resolutions`](/api/resolutions) reads the entry `.sol` file, finds its
+`import` statements, applies remappings and library search paths, and recurses.
+The output is a `ModuleInfo` graph: absolute path, raw code, rewritten code, and
+the list of imported modules for every file involved.
+
+That graph is also what the bundler reports back to your build tool as watch
+dependencies, so editing an imported library triggers a rebuild of exactly the
+modules that transitively import it.
+
+### 4. Compilation
+
+[`@tevm/compiler`](/api/compiler) turns the module graph into a solc standard
+JSON input, runs it through the solc instance provided by
+[`@tevm/solc`](/api/solc), and extracts the ABI, NatSpec `userdoc`, and (when
+requested) the `evm.bytecode` / `evm.deployedBytecode` objects and the AST.
+
+Bytecode is only requested for `.s.sol` files. This is a deliberate size
+optimisation: most application code reads from contracts that are already
+deployed and has no use for creation bytecode in the bundle.
+
+### 5. Code generation
+
+[`@tevm/runtime`](/api/runtime) emits module text. For `.s.sol` the emitted
+module looks like this:
+
+```ts
+import { createContract } from '@tevm/contract'
+
+const _Counter = {
+	name: 'Counter',
+	humanReadableAbi: ['function count() view returns (uint256)', 'function increment()'],
+	bytecode: '0x60806040...',
+	deployedBytecode: '0x60806040...',
+} as const
+
+export const Counter = createContract(_Counter)
+```
+
+The same artifacts can be emitted as `.d.ts`, `.ts`, `.mjs` or `.cjs`. The
+bundlers ask for ESM; the TypeScript plugin asks for `.d.ts`. That is the whole
+reason the editor and the build never disagree — they render the same artifacts
+through the same generator.
+
+### 6. Cache write
+
+The artifacts and the generated module are written back under `.tevm/` so the
+next build, the next `tsc` run, and the language server all reuse them.
+
+## Why a shared core matters
+
+The failure mode this design avoids is the one every ABI-codegen setup
+eventually hits: the editor's idea of a contract and the bundle's idea of a
+contract drift apart, and you get a green type check and a runtime revert. Here
+there is one resolver, one compiler invocation path, and one code generator.
+
+If you want to drive that core yourself — for a build tool with no adapter, or a
+test harness, or a script — see
+[Building a custom integration](/guides/custom-integration).

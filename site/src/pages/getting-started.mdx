@@ -1,0 +1,186 @@
+---
+title: Getting started
+description: Install a Tevm bundler plugin, configure TypeScript, and import your first Solidity file.
+---
+
+# Getting started
+
+This page takes you from an empty project to importing a Solidity contract with
+full type safety. It uses Vite; every other build tool follows the same three
+steps and is covered in its own [guide](/guides/vite).
+
+## 1. Install
+
+You need two things: a bundler plugin so the build understands `.sol` imports,
+and the TypeScript plugin so your editor and `tsc` understand them too.
+
+```bash
+npm install --save-dev @tevm/vite-plugin @tevm/ts-plugin
+npm install @tevm/contract
+```
+
+`@tevm/contract` is a runtime dependency: the modules generated from your
+Solidity files import `createContract` from it. It ships from the
+[tevm core repository](https://github.com/evmts/tevm-monorepo), not from this
+one. If your project already depends on `tevm`, that is enough — the generated
+code will import from `tevm/contract` instead.
+
+All packages in this repository are published under the `@tevm` scope and are
+versioned together. The current line is `1.0.0-rc.151`, so pin the release
+candidate explicitly if you want reproducible installs:
+
+```bash
+npm install --save-dev @tevm/vite-plugin@1.0.0-rc.151 @tevm/ts-plugin@1.0.0-rc.151
+```
+
+## 2. Configure the build
+
+```ts [vite.config.ts]
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+	plugins: [vitePluginTevm()],
+})
+```
+
+The plugin takes an optional `solc` version:
+
+```ts [vite.config.ts]
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+	plugins: [vitePluginTevm({ solc: '0.8.30' })],
+})
+```
+
+## 3. Configure TypeScript
+
+Add the language service plugin to `tsconfig.json`:
+
+```json [tsconfig.json]
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"plugins": [{ "name": "@tevm/ts-plugin" }]
+	},
+	"include": ["src"]
+}
+```
+
+In VS Code you must then select the workspace TypeScript version, or the editor
+will keep using its bundled copy of `tsc` which does not load your plugins:
+open the command palette and run **TypeScript: Select TypeScript Version →
+Use Workspace Version**. See [Editor & TypeScript setup](/guides/editor-setup)
+for the full story, including the standalone language server and the VS Code
+extension.
+
+## 4. Write a contract
+
+```solidity [src/contracts/Counter.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Counter {
+    uint256 public count;
+
+    function increment() public {
+        count += 1;
+    }
+
+    function set(uint256 next) public {
+        count = next;
+    }
+}
+```
+
+The `.s.sol` extension matters. A plain `.sol` import gives you the ABI only; an
+`.s.sol` import ("script") also carries `bytecode` and `deployedBytecode`, which
+is what you need in order to deploy the contract. If you only ever call an
+already-deployed contract, plain `.sol` is smaller and is the right choice.
+
+## 5. Import it
+
+```ts [src/main.ts]
+import { createMemoryClient } from 'tevm'
+import { Counter } from './contracts/Counter.s.sol'
+
+const client = createMemoryClient()
+
+const deployed = await client.deployContract(Counter)
+await client.mine({ blocks: 1 })
+
+await client.writeContract(deployed.write.increment())
+await client.mine({ blocks: 1 })
+
+const count = await client.readContract(deployed.read.count())
+console.log(count) // 1n
+```
+
+`Counter` is a Tevm `Contract`. Its `abi`, `humanReadableAbi`, `bytecode`,
+`deployedBytecode`, `read` and `write` members are all typed from the real
+compiled ABI — rename `increment` in the Solidity file and this module stops
+type-checking on the next build.
+
+The same contract object works with viem or wagmi against a real chain:
+
+```ts [src/read-mainnet.ts]
+import { createPublicClient, http } from 'viem'
+import { mainnet } from 'viem/chains'
+import { Counter } from './contracts/Counter.sol'
+
+const client = createPublicClient({
+	chain: mainnet,
+	transport: http(),
+})
+
+const counter = Counter.withAddress('0x1234567890123456789012345678901234567890')
+
+const count = await client.readContract(counter.read.count())
+console.log(count)
+```
+
+## 6. Ignore the cache directory
+
+Compilation artifacts are written to `.tevm/` in your project root. Add it to
+`.gitignore`:
+
+```bash [.gitignore]
+.tevm/
+```
+
+See [Caching](/guides/caching) for what lives in there and when to delete it.
+
+## Optional: `tevm.config.json`
+
+Project-wide compiler settings — Foundry integration, library paths, import
+remappings, the cache location — live in a `tevm.config.json` next to your
+`package.json`. It is optional; without it the defaults apply.
+
+```json [tevm.config.json]
+{
+	"foundryProject": true,
+	"libs": ["lib", "node_modules"],
+	"remappings": {
+		"@openzeppelin/": "node_modules/@openzeppelin/"
+	},
+	"cacheDir": ".tevm"
+}
+```
+
+Every field is documented in [Configuration](/guides/configuration).
+
+## Where to next
+
+- Your build tool is not Vite: [Rollup](/guides/rollup),
+  [esbuild](/guides/esbuild), [webpack](/guides/webpack),
+  [Rspack](/guides/rspack), [Bun](/guides/bun), [RequireJS](/guides/requirejs).
+- You use Foundry: [Foundry projects](/guides/foundry).
+- Something is red-underlined that should not be:
+  [Troubleshooting](/guides/troubleshooting).
+- You want to understand what actually happens on import:
+  [How it works](/how-it-works).

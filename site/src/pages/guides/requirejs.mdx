@@ -1,0 +1,99 @@
+---
+title: RequireJS
+description: Load Solidity files as AMD modules with @tevm/requirejs-plugin.
+---
+
+# RequireJS
+
+`@tevm/requirejs-plugin` implements the RequireJS **loader plugin** API (`load`
+and `normalize`), so Solidity files are loaded with the `!` plugin syntax rather
+than a bare path.
+
+This adapter exists for legacy AMD codebases. New projects should use
+[Vite](/guides/vite) or one of the other adapters.
+
+```bash
+npm install --save-dev @tevm/requirejs-plugin
+npm install @tevm/contract
+```
+
+## Register the loader
+
+```js [require-config.js]
+requirejs.config({
+	paths: {
+		'tevm-sol': 'node_modules/@tevm/requirejs-plugin/dist/requirejsPluginTevm',
+	},
+})
+```
+
+To pin a compiler version, construct the plugin yourself and define it as a
+named module:
+
+```js [tevm-sol.js]
+const { requirejsPluginTevm } = require('@tevm/requirejs-plugin')
+
+define('tevm-sol', [], function () {
+	return requirejsPluginTevm({ solc: '0.8.30' })
+})
+```
+
+## Complete example
+
+```solidity [contracts/Counter.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Counter {
+    uint256 public count;
+
+    function increment() public {
+        count += 1;
+    }
+}
+```
+
+```js [main.js]
+require(['tevm-sol!./contracts/Counter.s.sol', 'tevm'], function (Counter, tevm) {
+	console.log('ABI:', Counter.abi)
+	console.log('Bytecode:', Counter.bytecode)
+
+	var client = tevm.createMemoryClient()
+
+	client
+		.deployContract(Counter)
+		.then(function (deployed) {
+			return client.mine({ blocks: 1 }).then(function () {
+				return client.readContract(deployed.read.count())
+			})
+		})
+		.then(function (count) {
+			console.log('count:', count)
+		})
+})
+```
+
+The generated module is AMD:
+
+```js
+define(['@tevm/contract'], function (tevmContract) {
+	return tevmContract.createContract({
+		name: 'Counter',
+		humanReadableAbi: ['function count() view returns (uint256)', 'function increment()'],
+		bytecode: '0x60806040...',
+		deployedBytecode: '0x60806040...',
+	})
+})
+```
+
+## Notes
+
+- `.s.sol` gives you bytecode; plain `.sol` gives you ABI only, exactly as with
+  the other adapters.
+- Configuration comes from [`tevm.config.json`](/guides/configuration).
+- The plugin also exports `requirejsFileAccessObject`, the file access object it
+  uses internally, for callers driving
+  [`@tevm/base-bundler`](/api/base-bundler) directly.
+- There is no TypeScript story here beyond what
+  [`@tevm/ts-plugin`](/api/ts-plugin) provides for the `.sol` files themselves;
+  AMD `define` calls are untyped.

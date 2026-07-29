@@ -1,0 +1,93 @@
+---
+title: '@tevm/unplugin'
+description: The single plugin definition every Tevm bundler adapter wraps.
+---
+
+# `@tevm/unplugin`
+
+```bash
+npm install --save-dev @tevm/unplugin
+```
+
+This is the plugin. `@tevm/vite-plugin`, `@tevm/rollup-plugin` and the rest are
+each about ten lines wrapping what is exported here.
+
+Install it directly only when you are targeting a build tool that has no adapter
+in this repository — see
+[Building a custom integration](/guides/custom-integration).
+
+## `tevmUnplugin(options?)`
+
+```ts
+import { createUnplugin, tevmUnplugin } from '@tevm/unplugin'
+
+const plugin = createUnplugin(tevmUnplugin)
+
+export const vite = plugin.vite
+export const rollup = plugin.rollup
+export const webpack = plugin.webpack
+export const rspack = plugin.rspack
+export const esbuild = plugin.esbuild
+export const farm = plugin.farm
+```
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `options.solc` | `CompilerOption` | Solidity version. Defaults to the version of the installed `solc` package. |
+
+**Returns** an unplugin factory result. `createUnplugin` turns it into per-tool
+plugins.
+
+**Throws** `Error('Invalid solc compiler passed to Tevm plugin')` when `solc` is
+not a release known to [`@tevm/solc`](/api/solc).
+
+## `createUnplugin`
+
+Re-exported from [unplugin](https://unplugin.unjs.io) so you do not need a
+separate dependency on it.
+
+## Lifecycle
+
+**`buildStart`** — resolves the config, creates the cache and the solc instance,
+and constructs the [`@tevm/base-bundler`](/api/base-bundler) resolver:
+
+```ts
+config = await runPromise(
+	loadConfig(process.cwd()).pipe(
+		catchTag('FailedToReadConfigError', () =>
+			logWarning('Unable to find tevm.config.json. Using default config.').pipe(
+				map(() => defaultConfig),
+			),
+		),
+	),
+)
+```
+
+A missing `tevm.config.json` is a warning, not an error — you get
+`defaultConfig`.
+
+**`loadInclude`** — claims an id when it ends in `.sol` *and* none of
+`.ts`, `.js`, `.mjs`, `.cjs`, `.d.ts` exists as a sidecar next to it. That
+carve-out is what lets pre-generated modules take precedence over on-the-fly
+compilation.
+
+**`resolveId`** — redirects `@tevm/contract` imports coming from outside your
+project root to the copy resolvable from your project root, so a Solidity file
+compiled out of a linked workspace package still produces contracts backed by
+your `@tevm/contract`.
+
+**`load`** — calls `resolveEsmModule(id, process.cwd(), false, id.endsWith('.s.sol'))`,
+registers every non-`node_modules` module in the returned graph as a watch file,
+and returns the generated code.
+
+Note the fourth argument: bytecode is requested only for `.s.sol`.
+
+## Types
+
+```ts
+import type { CompilerOption } from '@tevm/unplugin'
+```
+
+`CompilerOption` is the union of solc version strings accepted by `options.solc`.

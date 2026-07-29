@@ -1,0 +1,92 @@
+---
+title: esbuild
+description: Import Solidity files in an esbuild build with @tevm/esbuild-plugin.
+---
+
+# esbuild
+
+```bash
+npm install --save-dev @tevm/esbuild-plugin @tevm/ts-plugin esbuild
+npm install @tevm/contract
+```
+
+## Configuration
+
+```ts [build.ts]
+import { esbuildPluginTevm } from '@tevm/esbuild-plugin'
+import { build } from 'esbuild'
+
+await build({
+	entryPoints: ['src/index.ts'],
+	outdir: 'dist',
+	bundle: true,
+	format: 'esm',
+	platform: 'node',
+	plugins: [esbuildPluginTevm({ solc: '0.8.30' })],
+})
+```
+
+`esbuildPluginTevm` accepts one optional option, `solc`. Everything else comes
+from [`tevm.config.json`](/guides/configuration).
+
+## Complete example
+
+```solidity [src/contracts/Vault.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Vault {
+    mapping(address => uint256) public deposits;
+
+    function deposit() public payable {
+        deposits[msg.sender] += msg.value;
+    }
+
+    function withdraw(uint256 amount) public {
+        require(deposits[msg.sender] >= amount, "insufficient");
+        deposits[msg.sender] -= amount;
+        payable(msg.sender).transfer(amount);
+    }
+}
+```
+
+```ts [src/index.ts]
+import { createMemoryClient } from 'tevm'
+import { Vault } from './contracts/Vault.s.sol'
+
+const depositor = '0x1234567890123456789012345678901234567890' as const
+
+const client = createMemoryClient()
+await client.setBalance({ address: depositor, value: 10_000_000_000_000_000_000n })
+
+const deployed = await client.deployContract(Vault)
+await client.mine({ blocks: 1 })
+
+await client.writeContract({
+	...deployed.write.deposit(),
+	account: depositor,
+	value: 1_000_000_000_000_000_000n,
+})
+await client.mine({ blocks: 1 })
+
+console.log(await client.readContract(deployed.read.deposits(depositor)))
+// 1000000000000000000n
+```
+
+Run it:
+
+```bash
+node build.ts && node dist/index.js
+```
+
+## Notes
+
+- esbuild has no watch-dependency API comparable to Rollup's, so incremental
+  rebuilds rely on the [`.tevm` cache](/guides/caching) rather than on a
+  file-watch graph. A changed Solidity file changes the compile fingerprint, so
+  the next build recompiles it.
+- esbuild does not type-check. `.sol` imports are typed for your editor and for
+  `tsc --noEmit` by [`@tevm/ts-plugin`](/api/ts-plugin); run `tsc` separately in
+  CI.
+- The plugin only claims a `.sol` file when no sidecar module (`.sol.ts`,
+  `.sol.js`, `.sol.d.ts`, …) exists next to it.

@@ -1,0 +1,176 @@
+---
+title: '@tevm/base-bundler'
+description: The orchestrator behind every Tevm bundler plugin.
+---
+
+# `@tevm/base-bundler`
+
+```bash
+npm install --save-dev @tevm/base-bundler
+```
+
+`base-bundler` ties the pipeline together: cache lookup, import resolution,
+compilation, code generation, cache write. Everything above it — the plugins,
+the TypeScript language service plugin, the language server — is an adapter over
+this one function.
+
+## `bundler(config, logger, fao, solc, cache, contractPackage?)`
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `config` | `ResolvedCompilerConfig` | From [`loadConfig`](/api/config) or `defaultConfig` |
+| `logger` | `Logger` | `{ info, warn, error, log }`; `console` works |
+| `fao` | `FileAccessObject` | Filesystem abstraction (see below) |
+| `solc` | `Solc` | From [`createSolc`](/api/solc), or the `solc` package |
+| `cache` | `Cache` | From [`createCache`](/api/bundler-cache) |
+| `contractPackage` | `'@tevm/contract' \| 'tevm/contract'` | Optional. Which package generated code imports `createContract` from. Auto-detected via `getContractPath` when omitted. |
+
+**Returns** an object with `name`, `config`, and eight resolvers.
+
+```ts
+import { bundler, getContractPath } from '@tevm/base-bundler'
+import { createCache } from '@tevm/bundler-cache'
+import { defaultConfig } from '@tevm/config'
+import { createSolc } from '@tevm/solc'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+
+const fao = {
+	existsSync,
+	exists: async (path: string) => existsSync(path),
+	readFile: (path: string, encoding: BufferEncoding) => readFile(path, { encoding }),
+	readFileSync,
+	writeFileSync,
+	writeFile,
+	statSync,
+	stat,
+	mkdirSync,
+	mkdir,
+}
+
+const cwd = process.cwd()
+const solc = await createSolc('0.8.30')
+const cache = createCache(defaultConfig.cacheDir, fao, cwd)
+
+const tevm = bundler(defaultConfig, console, fao, solc, cache, getContractPath(cwd))
+```
+
+## The resolvers
+
+Four output formats, each with an async and a sync variant:
+
+| Method | Output |
+| --- | --- |
+| `resolveEsmModule` / `resolveEsmModuleSync` | ES module source |
+| `resolveCjsModule` / `resolveCjsModuleSync` | CommonJS module source |
+| `resolveTsModule` / `resolveTsModuleSync` | TypeScript source |
+| `resolveDts` / `resolveDtsSync` | `.d.ts` declarations |
+
+All eight share a signature:
+
+```ts
+type AsyncBundlerResult = (
+	module: string,
+	basedir: string,
+	includeAst: boolean,
+	includeBytecode: boolean,
+) => Promise<BundlerResult>
+```
+
+| Parameter | Description |
+| --- | --- |
+| `module` | Path to the `.sol` file, relative to `basedir` or absolute |
+| `basedir` | Directory imports are resolved from — usually `process.cwd()` |
+| `includeAst` | Ask solc for the AST. Costs time and memory; leave `false` unless you need it. |
+| `includeBytecode` | Ask solc for creation and deployed bytecode. The plugins pass `id.endsWith('.s.sol')`. |
+
+```ts
+const { code, modules, solcInput, solcOutput, asts } = await tevm.resolveEsmModule(
+	'./contracts/Counter.s.sol',
+	cwd,
+	false,
+	true,
+)
+```
+
+## `BundlerResult`
+
+```ts
+type BundlerResult = {
+	/** The generated module source */
+	code: string
+	/** Every file in the resolved import graph, keyed by absolute path */
+	modules: Record<string, ModuleInfo>
+	/** The standard JSON input handed to solc, if it ran */
+	solcInput: SolcInputDescription | undefined
+	/** Raw solc output, including any `errors`, if it ran */
+	solcOutput: SolcOutput | undefined
+	/** Parsed ASTs, when `includeAst` was true */
+	asts: Record<string, Node> | undefined
+}
+```
+
+`solcInput` and `solcOutput` are `undefined` on a cache hit — solc never ran, so
+there is nothing to report. Do not treat that as a failure.
+
+Use `modules` to register watch dependencies:
+
+```ts
+for (const module of Object.values(modules)) {
+	if (module.id.includes('node_modules')) continue
+	watcher.add(module.id)
+}
+```
+
+## `getContractPath(cwd)`
+
+```ts
+import { getContractPath } from '@tevm/base-bundler'
+
+const contractPackage = getContractPath(process.cwd())
+// '@tevm/contract' or 'tevm/contract'
+```
+
+Detects which contract package is installed so generated code imports
+`createContract` from something that actually resolves. Projects that depend on
+`tevm` get `'tevm/contract'`; projects that depend on `@tevm/contract` directly
+get `'@tevm/contract'`.
+
+## `FileAccessObject`
+
+```ts
+type FileAccessObject = {
+	writeFileSync: (path: string, data: string) => void
+	writeFile: typeof import('node:fs/promises').writeFile
+	readFile: (path: string, encoding: BufferEncoding) => Promise<string>
+	readFileSync: (path: string, encoding: BufferEncoding) => string
+	exists: (path: string) => Promise<boolean>
+	existsSync: (path: string) => boolean
+	statSync: typeof import('node:fs').statSync
+	stat: typeof import('node:fs/promises').stat
+	mkdirSync: typeof import('node:fs').mkdirSync
+	mkdir: typeof import('node:fs/promises').mkdir
+}
+```
+
+The bundler never imports `node:fs` itself. That indirection is why the same
+code runs against a real filesystem in a build, against Bun's file API in
+`@tevm/bun-plugin`, and against the TypeScript language service's in-memory
+buffers in `@tevm/ts-plugin` — where the file you are editing has not been saved
+to disk yet.
+
+## Exported types
+
+```ts
+import type {
+	AsyncBundlerResult,
+	Bundler,
+	BundlerResult,
+	FileAccessObject,
+	Logger,
+	SolidityResolver,
+	SyncBundlerResult,
+} from '@tevm/base-bundler'
+```

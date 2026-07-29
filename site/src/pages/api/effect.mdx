@@ -1,0 +1,136 @@
+---
+title: '@tevm/effect'
+description: Small Effect wrappers the Tevm bundler pipeline is built on.
+---
+
+# `@tevm/effect`
+
+```bash
+npm install --save-dev @tevm/effect
+```
+
+Five thin [Effect](https://effect.website) wrappers around operations the rest of
+the pipeline does constantly: resolving modules, reading files, parsing JSON,
+and reporting errors.
+
+These exist so that failures carry a `_tag` and can be caught selectively —
+which is exactly what the plugins do when they treat a missing
+`tevm.config.json` as a warning while still failing hard on a malformed one.
+
+You do not need Effect in your own code to use the bundler. This package is for
+people extending the pipeline.
+
+## `resolveSync(importPath, options)` / `resolveAsync(importPath, options)`
+
+Effect wrappers around the [`resolve`](https://www.npmjs.com/package/resolve)
+package.
+
+```ts
+import { resolveSync } from '@tevm/effect'
+import { runSync } from 'effect/Effect'
+
+const path = runSync(resolveSync('@tevm/contract', { basedir: process.cwd() }))
+console.log(path)
+```
+
+**Parameters** — `importPath: string`, and `options`, the `resolve` package's
+sync or async options (most usefully `basedir`).
+
+**Returns** `Effect<string, CouldNotResolveImportError, never>` — the resolved
+absolute path.
+
+**Throws** (as an Effect failure) `CouldNotResolveImportError`, whose message
+names both the import and the directory it was resolved from:
+
+> Could not resolve import `<path>` from `<basedir>`. Please check your
+> remappings and libraries.
+
+## `fileExists(path)`
+
+```ts
+import { fileExists } from '@tevm/effect'
+import { runPromise } from 'effect/Effect'
+
+if (await runPromise(fileExists('./tevm.config.json'))) {
+	console.log('found a config')
+}
+```
+
+**Returns** `Effect<boolean, never, never>`. It cannot fail — a missing file and
+an unreadable one both come back `false`. Debug logs record the path and the
+answer.
+
+## `parseJson(jsonStr)`
+
+```ts
+import { parseJson } from '@tevm/effect'
+import { runSync } from 'effect/Effect'
+
+const config = runSync(
+	parseJson('{ "foundryProject": true, /* comments are fine */ "libs": ["lib"], }'),
+)
+```
+
+**Returns** `Effect<unknown, ParseJsonError, never>`.
+
+**Throws** (as an Effect failure) `ParseJsonError`, with the underlying parse
+errors as its `cause`.
+
+Parsing is done with `jsonc-parser`, so **comments and trailing commas are
+accepted**. That is deliberate: `tsconfig.json` files routinely contain both,
+and Tevm config can live inside one.
+
+## `createRequireEffect(url)`
+
+```ts
+import { createRequireEffect } from '@tevm/effect'
+import { flatMap, runPromise } from 'effect/Effect'
+
+const solc = await runPromise(
+	createRequireEffect(import.meta.url).pipe(flatMap((require) => require('solc'))),
+)
+```
+
+**Returns** `Effect<(id: string) => Effect<unknown, RequireError, never>, CreateRequireError, never>`
+— an Effect producing a `require` function that itself returns Effects.
+
+**Throws** (as Effect failures) `CreateRequireError` if the require function
+cannot be constructed for `url`, and `RequireError` if the subsequent require
+fails.
+
+This exists so CommonJS-only dependencies can be loaded from ESM without the
+call site having to care which module system it is in.
+
+## `logAllErrors(e)`
+
+```ts
+import { logAllErrors } from '@tevm/effect'
+import { tapError } from 'effect/Effect'
+
+const program = someEffect.pipe(tapError(logAllErrors))
+```
+
+Walks the `cause` chain of an error and logs every link, outermost cause first.
+Useful because the pipeline wraps errors several layers deep — a
+`LoadConfigError` caused by a `FoundryNotFoundError` caused by an `ENOENT` is
+otherwise reported as one unhelpful line.
+
+**Returns** `Effect<void, never, never>`.
+
+## Error tags
+
+Every error class here carries a literal `_tag`, which is what makes
+`catchTag` work:
+
+| Class | `_tag` |
+| --- | --- |
+| `CouldNotResolveImportError` | `'CouldNotResolveImportError'` |
+| `ParseJsonError` | `'ParseJsonError'` |
+| `CreateRequireError` | `'CreateRequireError'` |
+| `RequireError` | `'RequireError'` |
+
+```ts
+import { catchTag, succeed } from 'effect/Effect'
+
+const safe = parseJson(maybeInvalid).pipe(catchTag('ParseJsonError', () => succeed({})))
+```

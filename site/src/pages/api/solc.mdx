@@ -1,0 +1,125 @@
+---
+title: '@tevm/solc'
+description: Load a pinned Solidity compiler and call it with typed inputs.
+---
+
+# `@tevm/solc`
+
+```bash
+npm install --save-dev @tevm/solc
+```
+
+A small typed wrapper around the `solc` npm package: a table of known releases, a
+loader for a specific version, and a `compile` that takes and returns objects
+rather than JSON strings.
+
+## `releases`
+
+```ts
+import { releases } from '@tevm/solc'
+
+console.log(releases['0.8.30']) // 'v0.8.30+commit.73712a01.js'
+console.log(Object.keys(releases).length)
+```
+
+A map from version string to the exact solc-bin build. This is also the source
+of truth for the `solc` option every bundler plugin accepts — a version not in
+this table is rejected at plugin construction time.
+
+## `createSolc(release)`
+
+```ts
+import { createSolc } from '@tevm/solc'
+
+const solc = await createSolc('0.8.30')
+
+console.log(solc.version())
+```
+
+**Parameters** — `release: keyof typeof releases`, e.g. `'0.8.30'`.
+
+**Returns** `Promise<Solc>` — a solc instance whose `compile` accepts either a
+`SolcInputDescription` object (returning a parsed `SolcOutput`) or a JSON string
+(returning a JSON string).
+
+**Throws** if the remote version cannot be loaded. The first call for a given
+version downloads the compiler from solc-bin, so it needs network access;
+subsequent calls in the same process reuse the loaded instance.
+
+If you do not need a specific version, the `solc` package installed alongside
+the plugin is used directly and no download happens at all. That is the default
+path.
+
+## `solcCompile(solc, input)`
+
+A typed wrapper over `solc.compile` for cases where you hold a raw solc object:
+
+```ts
+import { createSolc, solcCompile } from '@tevm/solc'
+
+const solc = await createSolc('0.8.30')
+
+const output = solcCompile(solc, {
+	language: 'Solidity',
+	sources: {
+		'Counter.sol': {
+			content: `
+				// SPDX-License-Identifier: MIT
+				pragma solidity ^0.8.20;
+
+				contract Counter {
+				    uint256 public count;
+				    function increment() public { count++; }
+				}
+			`,
+		},
+	},
+	settings: {
+		outputSelection: {
+			'*': {
+				'*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object'],
+			},
+		},
+	},
+})
+
+const counter = output.contracts?.['Counter.sol']?.['Counter']
+console.log(counter?.abi)
+console.log(output.errors ?? [])
+```
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `solc` | `Solc` | A solc instance |
+| `input` | `SolcInputDescription` | Standard JSON input |
+
+**Returns** `SolcOutput`. Serialisation in both directions is handled for you.
+
+Note that solc reports compilation problems in `output.errors` rather than by
+throwing — a returned output with no `contracts` is a failed compile, not an
+empty project. Always check `errors`.
+
+## Types
+
+The full solc standard JSON schema is typed and exported:
+
+```ts
+import type {
+	Releases,
+	Solc,
+	SolcContractOutput,
+	SolcInputDescription,
+	SolcOutput,
+	SolcVersions,
+} from '@tevm/solc'
+```
+
+`SolcVersions` is the union of keys of `releases` — the type behind the `solc`
+plugin option.
+
+## `@tevm/solc-rs`
+
+A Rust wrapper around solc shipped as prebuilt native binaries, avoiding the
+solc-js download for supported platforms. Same compilation semantics.

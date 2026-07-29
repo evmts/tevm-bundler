@@ -1,0 +1,77 @@
+---
+title: API reference
+description: Every package published from the tevm-bundler repository.
+---
+
+# API reference
+
+Every package here is published under the `@tevm` scope on npm and versioned
+together, currently on the `1.0.0-rc.151` line.
+
+## Bundler adapters
+
+You install exactly one of these. Each is a thin wrapper over
+[`@tevm/unplugin`](/api/unplugin).
+
+| Package | Export | Guide |
+| --- | --- | --- |
+| `@tevm/vite-plugin` | `vitePluginTevm` | [Vite](/guides/vite) |
+| `@tevm/rollup-plugin` | `rollupPluginTevm` | [Rollup](/guides/rollup) |
+| `@tevm/esbuild-plugin` | `esbuildPluginTevm` | [esbuild](/guides/esbuild) |
+| `@tevm/webpack-plugin` | `WebpackPluginTevm` (constructor) | [webpack](/guides/webpack) |
+| `@tevm/rspack-plugin` | `rspackPluginTevm` | [Rspack](/guides/rspack) |
+| `@tevm/bun-plugin` | `bunPluginTevm` | [Bun](/guides/bun) |
+| `@tevm/requirejs-plugin` | `requirejsPluginTevm` | [RequireJS](/guides/requirejs) |
+
+See [Bundler plugins](/api/plugins) for the shared option type.
+
+## Pipeline
+
+Consumed by the adapters, and available directly if you are
+[building your own integration](/guides/custom-integration).
+
+| Package | Responsibility |
+| --- | --- |
+| [`@tevm/unplugin`](/api/unplugin) | The single plugin definition all adapters wrap |
+| [`@tevm/base-bundler`](/api/base-bundler) | Orchestrates cache → resolve → compile → codegen |
+| [`@tevm/config`](/api/config) | Resolves `tevm.config.json`, Foundry and tsconfig settings |
+| [`@tevm/resolutions`](/api/resolutions) | Walks the Solidity import graph |
+| [`@tevm/compiler`](/api/compiler) | Runs solc and extracts artifacts |
+| [`@tevm/solc`](/api/solc) | Loads a pinned solc build |
+| [`@tevm/runtime`](/api/runtime) | Generates module source from artifacts |
+| [`@tevm/bundler-cache`](/api/bundler-cache) | Filesystem artifact cache |
+
+## Editor tooling
+
+| Package | Responsibility |
+| --- | --- |
+| [`@tevm/ts-plugin`](/api/ts-plugin) | TypeScript language service plugin |
+| [`@tevm/lsp`](/api/lsp) | Standalone Volar-based language server |
+| `@tevm/vscode` | VS Code extension bundling the language server |
+
+## Foundations
+
+| Package | Responsibility |
+| --- | --- |
+| [`@tevm/effect`](/api/effect) | Small Effect wrappers used across the pipeline |
+
+## Native implementations
+
+`@tevm/resolutions-rs` and `@tevm/runtime-rs` are Rust ports of
+[`@tevm/resolutions`](/api/resolutions) and [`@tevm/runtime`](/api/runtime),
+shipped as prebuilt native binaries with the same behaviour. The JavaScript
+packages remain the reference implementations and the portable fallback; prefer
+them unless you have measured that resolution or codegen is your bottleneck.
+
+## Conventions used here
+
+- **`FileAccessObject`** — every package that touches the filesystem takes one
+  of these rather than importing `node:fs` directly, which is what makes the
+  pipeline usable from a language server's in-memory buffers or a browser.
+- **`Logger`** — a `{ info, warn, error, log }` object. `console` satisfies it.
+- **Effect** — a few functions return
+  [Effect](https://effect.website) values instead of promises. Run them with
+  `runPromise` / `runSync` from `effect/Effect`.
+- **sync twins** — resolution APIs come in async and sync pairs. The sync ones
+  exist because the TypeScript language service and Bun's module resolver
+  require synchronous answers.

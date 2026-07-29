@@ -1,0 +1,107 @@
+---
+title: '@tevm/ts-plugin'
+description: The TypeScript language service plugin that types .sol imports.
+---
+
+# `@tevm/ts-plugin`
+
+```bash
+npm install --save-dev @tevm/ts-plugin
+```
+
+A TypeScript
+[language service plugin](https://github.com/microsoft/TypeScript/wiki/Writing-a-Language-Service-Plugin)
+that decorates `tsserver` so `.sol` imports resolve to real types.
+
+## Setup
+
+```json [tsconfig.json]
+{
+	"compilerOptions": {
+		"plugins": [{ "name": "@tevm/ts-plugin" }]
+	}
+}
+```
+
+The name must be exactly `@tevm/ts-plugin` — [`@tevm/config`](/api/config) looks
+for that literal string when it reads Tevm settings out of `tsconfig.json`, so
+an alias will silently disable configuration inheritance.
+
+You can put Tevm config on the same entry:
+
+```json [tsconfig.json]
+{
+	"compilerOptions": {
+		"plugins": [
+			{
+				"name": "@tevm/ts-plugin",
+				"foundryProject": true,
+				"libs": ["lib"]
+			}
+		]
+	}
+}
+```
+
+This is only consulted when there is no `tevm.config.json`. See
+[Configuration](/guides/configuration).
+
+In VS Code you must also select the workspace TypeScript version — see
+[Editor & TypeScript setup](/guides/editor-setup).
+
+## What it provides
+
+- **Types on `.sol` imports.** The plugin generates `.d.ts` content from the
+  compiled ABI, so `Counter.read.count()` is typed from the real contract.
+- **Autocompletion** over `abi`, `read`, `write`, `events` and the rest of the
+  `Contract` surface.
+- **Go to definition** from a TypeScript call site into the Solidity function
+  that backs it.
+- **NatSpec on hover** — `/// @notice` comments become documentation.
+
+## How it works
+
+The plugin is a `PluginModuleFactory`. On `create` it:
+
+1. Loads the config with [`loadConfig`](/api/config), warning and falling back to
+   `defaultConfig` when no `tevm.config.json` exists.
+2. Builds **two** file access objects. One reads through the language service
+   host — so the file you are editing is seen as it is *right now*, not as it
+   was last saved — and one reads the real filesystem, for the cache.
+3. Creates a [`@tevm/bundler-cache`](/api/bundler-cache) instance pointed at the
+   same `cacheDir` the bundlers use, which is why opening a file in your editor
+   warms the cache for the next build.
+4. Decorates the language service host with:
+   - `getScriptKindDecorator` — tells TypeScript to treat `.sol` files as TS,
+   - `resolveModuleNameLiteralsDecorator` — makes `./Counter.sol` resolvable,
+   - `getScriptSnapshotDecorator` — serves generated `.d.ts` content in place of
+     Solidity source.
+5. Decorates the language service itself with `getDefinitionServiceDecorator`,
+   which maps a definition request on a generated member back to the Solidity
+   source range.
+
+Everything downstream of step 1 is the same code the bundlers run, which is the
+point: the editor and the build cannot disagree.
+
+## Limitations
+
+- **`tsc` does not load language service plugins.** Only `tsserver` does. A
+  command-line `tsc --noEmit` will still report `Cannot find module
+  './Counter.sol'`. See
+  [Editor & TypeScript setup](/guides/editor-setup#command-line-type-checking)
+  for the options.
+- **Next.js `next build`** runs its own project-wide check that has the same
+  limitation — see [the webpack guide](/guides/webpack#nextjs).
+- Resolution here is **synchronous**, because the language service demands it.
+  That is why [`@tevm/base-bundler`](/api/base-bundler) carries a sync twin for
+  every resolver.
+
+## Export
+
+```ts
+import tsPlugin = require('@tevm/ts-plugin')
+```
+
+The package exports the `PluginModuleFactory` via `export =`, which is what
+TypeScript's plugin loader expects. You should not need to import it yourself —
+listing it in `tsconfig.json` is the whole integration.

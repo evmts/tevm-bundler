@@ -1,0 +1,153 @@
+---
+title: Editor & TypeScript setup
+description: Make tsc, VS Code and other editors understand .sol imports.
+---
+
+# Editor & TypeScript setup
+
+A bundler plugin only teaches your *build* about `.sol` imports. TypeScript
+still needs to be told, or every Solidity import will be a red squiggle and
+`tsc --noEmit` will fail.
+
+There are three pieces of editor tooling in this repository, and they share the
+same resolution and compilation code as the bundlers.
+
+## `@tevm/ts-plugin` — the TypeScript language service plugin
+
+This is the piece you almost certainly want. It decorates the TypeScript
+language service so that `.sol` files resolve to generated `.d.ts` content.
+
+```bash
+npm install --save-dev @tevm/ts-plugin
+```
+
+```json [tsconfig.json]
+{
+	"compilerOptions": {
+		"plugins": [{ "name": "@tevm/ts-plugin" }]
+	}
+}
+```
+
+It gives you:
+
+- type-checked ABIs on `.sol` imports,
+- autocompletion for `read`, `write`, `events` and ABI members,
+- go-to-definition from a TypeScript call site into the Solidity source,
+- NatSpec comments surfaced as hover documentation.
+
+### VS Code: use the workspace TypeScript version
+
+VS Code ships its own copy of TypeScript, and that copy does not load your
+project's language service plugins. Until you switch, the plugin does nothing.
+
+Command palette → **TypeScript: Select TypeScript Version** → **Use Workspace
+Version**.
+
+To make this the default for everyone on the project:
+
+```json [.vscode/settings.json]
+{
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true
+}
+```
+
+### Command-line type checking
+
+Language service plugins are loaded by `tsserver`, **not** by `tsc`. Plain
+`tsc --noEmit` will therefore still report `Cannot find module './Counter.sol'`.
+Use a `tsc` wrapper that loads plugins:
+
+```bash
+npm install --save-dev typescript-plugin-css-modules-free tsc-alias
+```
+
+The pragmatic options, in order of how much people actually use them:
+
+1. **Let the bundler type-check.** Vite/Vitest report real type errors through
+   `vue-tsc`-style runners, and CI usually runs the build anyway.
+2. **Generate sidecar `.d.ts` files** with the `tevm` CLI codegen and commit
+   them or produce them in a CI step before `tsc`. The bundler plugins defer to
+   sidecar modules automatically, so this changes nothing at build time.
+
+## `@tevm/lsp` — the standalone language server
+
+For editors that speak LSP but have no TypeScript plugin story (Neovim, Helix,
+Emacs, Zed), `@tevm/lsp` is a
+[Volar](https://volarjs.dev)-based language server exposing the same
+functionality over the Language Server Protocol.
+
+```bash
+npm install --save-dev @tevm/lsp
+```
+
+It installs a `tevm-lsp` binary that speaks LSP over stdio:
+
+```bash
+npx tevm-lsp --stdio
+```
+
+A Neovim example using `nvim-lspconfig`'s generic client:
+
+```lua
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'solidity', 'typescript', 'typescriptreact', 'javascript' },
+  callback = function(args)
+    vim.lsp.start({
+      name = 'tevm-lsp',
+      cmd = { 'npx', 'tevm-lsp', '--stdio' },
+      root_dir = vim.fs.dirname(vim.fs.find({ 'tevm.config.json', 'package.json', '.git' }, { upward = true })[1]),
+    }, { bufnr = args.buf })
+  end,
+})
+```
+
+The server watches the file extensions its language plugins declare, so edits to
+Solidity files refresh diagnostics without a restart.
+
+## The VS Code extension
+
+`@tevm/vscode` ("Tevm Language Features") bundles the language server and
+activates on Solidity, JavaScript and TypeScript files. It requires VS Code
+1.82 or newer.
+
+Install it from the marketplace, or build a `.vsix` from this repository:
+
+```bash
+pnpm --filter @tevm/vscode pack
+```
+
+The extension and the TypeScript plugin are complementary, not alternatives: the
+plugin integrates with the TypeScript language service you already use for
+`.ts` files, while the extension provides the Solidity-side features.
+
+## Verifying the setup
+
+Create a Solidity file and hover the import in your editor:
+
+```solidity [src/Counter.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/// @title A counter
+/// @notice Stores a number you can increment.
+contract Counter {
+    uint256 public count;
+
+    /// @notice Adds one to the counter.
+    function increment() public {
+        count += 1;
+    }
+}
+```
+
+```ts [src/main.ts]
+import { Counter } from './Counter.s.sol'
+
+//    ^ hover: "Adds one to the counter."
+Counter.write.increment()
+```
+
+If the NatSpec text shows up on hover, the plugin is loaded. If it does not, see
+[Troubleshooting](/guides/troubleshooting).

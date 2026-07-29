@@ -1,0 +1,127 @@
+---
+title: '@tevm/runtime'
+description: Turn compiled Solidity artifacts into JavaScript or TypeScript module source.
+---
+
+# `@tevm/runtime`
+
+```bash
+npm install --save-dev @tevm/runtime
+```
+
+The code generation step. Given artifacts from
+[`@tevm/compiler`](/api/compiler), emit the text of a module that exports a Tevm
+`Contract` per contract in the file.
+
+## `generateRuntime(artifacts, moduleType, includeBytecode, tevmPackage)`
+
+```ts
+import { generateRuntime } from '@tevm/runtime'
+import { runPromise } from 'effect/Effect'
+
+const artifacts = {
+	Counter: {
+		contractName: 'Counter',
+		abi: [
+			{
+				inputs: [],
+				name: 'count',
+				outputs: [{ name: '', type: 'uint256' }],
+				stateMutability: 'view',
+				type: 'function',
+			},
+			{ inputs: [], name: 'increment', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+		],
+		userdoc: {},
+		evm: {
+			bytecode: { object: '0x60806040' },
+			deployedBytecode: { object: '0x60806040' },
+		},
+	},
+} as const
+
+const code = await runPromise(generateRuntime(artifacts, 'ts', true, '@tevm/contract'))
+
+console.log(code)
+```
+
+which prints:
+
+```ts
+import { createContract } from '@tevm/contract'
+
+const _Counter = {
+	name: 'Counter',
+	humanReadableAbi: ['function count() view returns (uint256)', 'function increment()'],
+	bytecode: '0x60806040',
+	deployedBytecode: '0x60806040',
+} as const
+
+export const Counter = createContract(_Counter)
+```
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `artifacts` | `Artifacts` | From [`@tevm/compiler`](/api/compiler), keyed by contract name |
+| `moduleType` | `'ts' \| 'dts' \| 'mjs' \| 'cjs'` | Output format |
+| `includeBytecode` | `boolean` | Emit `bytecode` and `deployedBytecode`. The bundlers pass `true` only for `.s.sol`. |
+| `tevmPackage` | `'@tevm/contract' \| 'tevm/contract'` | Which package to import `createContract` from |
+
+**Returns** `Effect<string, never, never>` — the generated module source.
+
+**Throws** (as a defect, so `runPromise` rejects) when `artifacts` is empty or
+`moduleType` is not one of the four supported formats.
+
+## Output formats
+
+| `moduleType` | Import line | Used by |
+| --- | --- | --- |
+| `'ts'` | `import { createContract } from '…'` | codegen, `resolveTsModule` |
+| `'mjs'` | `import { createContract } from '…'` | bundler plugins |
+| `'cjs'` | `const { createContract } = require('…')` | Node.js require hooks |
+| `'dts'` | `import type { Contract } from '…'` | the TypeScript plugin |
+
+The `dts` output declares types only — no `createContract` call — which is what
+the language service needs in order to type a `.sol` import without compiling
+bytecode.
+
+## Choosing `tevmPackage`
+
+Generated code has to import `createContract` from something that resolves in
+the consuming project. If the project depends on `tevm`, that is
+`'tevm/contract'`; if it depends on `@tevm/contract` directly, it is
+`'@tevm/contract'`.
+
+You do not normally decide this by hand —
+[`getContractPath`](/api/base-bundler#getcontractpathcwd) detects it:
+
+```ts
+import { getContractPath } from '@tevm/base-bundler'
+import { generateRuntime } from '@tevm/runtime'
+import { runPromise } from 'effect/Effect'
+
+const code = await runPromise(
+	generateRuntime(artifacts, 'mjs', true, getContractPath(process.cwd())),
+)
+```
+
+## Human-readable ABIs
+
+The generated module carries `humanReadableAbi` rather than the JSON ABI. It is
+substantially smaller in the bundle, and `createContract` reconstructs the full
+typed ABI from it, so nothing is lost.
+
+## Types
+
+```ts
+import type { ModuleType } from '@tevm/runtime'
+// 'cjs' | 'dts' | 'ts' | 'mjs'
+```
+
+## `@tevm/runtime-rs`
+
+A Rust implementation of the same code generation, shipped as prebuilt native
+binaries. Same output; use the JavaScript package unless codegen is measurably
+hot.

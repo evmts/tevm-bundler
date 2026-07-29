@@ -1,0 +1,215 @@
+---
+title: '@tevm/compiler'
+description: Run solc over a resolved import graph and extract artifacts.
+---
+
+# `@tevm/compiler`
+
+```bash
+npm install --save-dev @tevm/compiler
+```
+
+Takes a `.sol` entry point, resolves its import graph via
+[`@tevm/resolutions`](/api/resolutions), builds a solc standard JSON input, runs
+it, and extracts ABI, NatSpec, bytecode and AST.
+
+There are two APIs here: the artifact-resolution API the bundler uses, and a
+newer `createCompiler` API for direct compilation.
+
+## `resolveArtifacts(...)`
+
+```ts
+import { resolveArtifacts } from '@tevm/compiler'
+import { defaultConfig } from '@tevm/config'
+import { createSolc } from '@tevm/solc'
+import { existsSync, readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+
+const fao = {
+	readFile: (path: string, encoding: BufferEncoding) => readFile(path, { encoding }),
+	readFileSync,
+	existsSync,
+	exists: async (path: string) => existsSync(path),
+}
+
+const solc = await createSolc('0.8.30')
+
+const { artifacts, modules, solcOutput } = await resolveArtifacts(
+	'./contracts/Counter.s.sol',
+	process.cwd(),
+	console,
+	defaultConfig,
+	false, // includeAst
+	true, // includeBytecode
+	fao,
+	solc,
+)
+
+for (const [name, contract] of Object.entries(artifacts)) {
+	console.log(name, contract.abi.length, 'abi entries')
+	console.log(contract.evm.deployedBytecode.object.slice(0, 12))
+}
+```
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `solFile` | `string` | Entry `.sol` file |
+| `basedir` | `string` | Directory imports resolve from |
+| `logger` | `Logger` | `console` works |
+| `config` | `ResolvedCompilerConfig` | From [`@tevm/config`](/api/config) |
+| `includeAst` | `boolean` | Return parsed ASTs |
+| `includeBytecode` | `boolean` | Compile bytecode as well as ABI |
+| `fao` | `FileAccessObject` | Filesystem abstraction |
+| `solc` | `Solc` | From [`@tevm/solc`](/api/solc) |
+
+**Returns** `Promise<ResolvedArtifacts>`.
+
+**Throws**
+
+- `Error('Not a solidity file')` when `solFile` does not end in `.sol`.
+- `Error('Compilation failed')` when solc produced no artifacts. The logger
+  receives `Compilation failed for <file>` first, and solc's own diagnostics are
+  logged as errors.
+
+### `resolveArtifactsSync(...)`
+
+Identical signature and return shape, synchronous. Used by the TypeScript
+language service plugin and the Bun plugin, both of which must answer
+synchronously.
+
+## `ResolvedArtifacts`
+
+```ts
+type ResolvedArtifacts = {
+	artifacts: Artifacts
+	modules: Record<string, ModuleInfo>
+	asts?: Record<string, Node>
+	solcInput?: SolcInputDescription
+	solcOutput?: SolcOutput
+}
+
+type Artifacts = Record<
+	string,
+	{
+		contractName: string
+		abi: SolcContractOutput['abi']
+		userdoc: SolcContractOutput['userdoc']
+		evm: SolcContractOutput['evm']
+	}
+>
+```
+
+`artifacts` is keyed by contract name — one Solidity file can define several
+contracts, and each becomes its own export in the generated module.
+
+`userdoc` carries NatSpec, which is what surfaces as hover documentation in the
+editor.
+
+## `createCompiler(options)`
+
+A higher-level compiler object for compiling sources directly, without the
+bundler's file-oriented plumbing.
+
+```ts
+import { createCompiler } from '@tevm/compiler'
+
+const compiler = createCompiler({
+	optimizer: { enabled: true, runs: 200 },
+})
+
+await compiler.loadSolc('0.8.30')
+
+const { compilationResult, errors, solcInput, solcOutput } = compiler.compileSource(
+	`
+	// SPDX-License-Identifier: MIT
+	pragma solidity ^0.8.20;
+
+	contract Counter {
+	    uint256 public count;
+	    function increment() public { count++; }
+	}
+	`,
+	{
+		compilationOutput: ['abi', 'ast', 'evm.bytecode', 'evm.deployedBytecode', 'storageLayout'],
+	},
+)
+
+console.log(errors)
+console.log(Object.keys(compilationResult))
+```
+
+Compile files instead of strings:
+
+```ts
+const result = await compiler.compileFiles(['./contracts/Counter.sol'])
+const resultSync = compiler.compileFilesSync(['./contracts/Counter.sol'])
+```
+
+### Shadow compilation
+
+Recompile a contract with internal functions and variables exposed — useful for
+tests that need to reach past `internal`:
+
+```ts
+const result = compiler.compileSource(source, {
+	exposeInternalFunctions: true,
+	exposeInternalVariables: true,
+})
+```
+
+Or inject your own functions into the contract body:
+
+```ts
+const result = compiler.compileSourceWithShadow(
+	source,
+	`
+	function getCount() public view returns (uint256) {
+	    return count;
+	}
+	`,
+)
+```
+
+The same shadow options exist as `compileFilesWithShadow`,
+`compileSourcesWithShadow` and `compileSourceWithShadow`.
+
+### AST helpers
+
+```ts
+import { extractContractsFromAstNodes, solcSourcesToAstNodes } from '@tevm/compiler'
+
+const { solcOutput } = compiler.compileSource(source, { compilationOutput: ['ast'] })
+
+const sourceUnits = solcSourcesToAstNodes(solcOutput.sources)
+const counter = sourceUnits[0]?.vContracts.find((c) => c.name === 'Counter')
+
+// ...mutate the typed AST, then render it back to Solidity
+const { sources } = extractContractsFromAstNodes(sourceUnits)
+```
+
+AST nodes are [`solc-typed-ast`](https://github.com/Consensys/solc-typed-ast)
+objects; `@tevm/compiler` re-exports the node types it uses (`ASTNode`,
+`SourceUnit`, `ContractKind`, `FunctionVisibility`, `Mutability`, and friends).
+
+Also exported: `extractContractsFromSolcOutput`, `compileSources`,
+`compileFiles`.
+
+## Types
+
+```ts
+import type {
+	Artifacts,
+	CompiledContracts,
+	FileAccessObject,
+	Logger,
+	ModuleInfo,
+	ResolvedArtifacts,
+} from '@tevm/compiler'
+```
+
+Note that this package's `FileAccessObject` is narrower than
+[`@tevm/base-bundler`](/api/base-bundler)'s — it needs only `readFile`,
+`readFileSync`, `exists` and `existsSync`, because it never writes. A
+base-bundler `FileAccessObject` satisfies it.

@@ -1,0 +1,97 @@
+---
+title: Tevm Bundler
+description: Import Solidity files directly in JavaScript and TypeScript.
+---
+
+import { LandingHero } from '../components/LandingHero'
+import { SolImportTransform } from '../components/SolImportTransform'
+import { TevmSites } from '../components/TevmSites'
+
+<LandingHero />
+
+<SolImportTransform />
+
+Import a Solidity file the same way you import a TypeScript module, and get a
+fully typed contract object back.
+
+```ts
+import { Counter } from './contracts/Counter.sol'
+
+Counter.abi
+Counter.humanReadableAbi
+Counter.deployedBytecode
+```
+
+There is no code generation step to run, no `artifacts/` directory to check in,
+and no hand-written ABI constant that silently drifts from the contract it is
+supposed to describe. Your build tool compiles `Counter.sol` on demand, caches
+the result, and hands your application a `Contract` object with types derived
+from the real ABI.
+
+## Why this exists
+
+Every JavaScript project that talks to a smart contract has to answer the same
+question: how does the ABI get from Solidity into TypeScript? The usual answers
+are all unsatisfying.
+
+- **Copy the ABI into a `.json` or `.ts` file.** It works until someone changes
+  the contract and forgets the copy. The type checker cannot help you, because
+  as far as it knows the stale ABI is the truth.
+- **Run a codegen CLI in a pretest/prebuild hook.** Now the generated files are
+  either committed (noisy diffs, merge conflicts) or not committed (a broken
+  checkout until someone runs the right command).
+- **Load the ABI at runtime.** You lose every type, and you find out about a
+  renamed function in production.
+
+The Tevm bundler removes the question. The Solidity file *is* the module. The
+import graph your bundler already walks is the same graph that tells it when to
+recompile, so a change to `Counter.sol` invalidates exactly the modules that
+depend on it — no more, no less.
+
+## What is in this repository
+
+This repository is the whole Solidity-to-JavaScript pipeline:
+
+- **Bundler plugins** for [Vite](/guides/vite), [Rollup](/guides/rollup),
+  [esbuild](/guides/esbuild), [webpack](/guides/webpack),
+  [Rspack](/guides/rspack), [Bun](/guides/bun) and
+  [RequireJS](/guides/requirejs) — thin adapters over one shared core.
+- **The compiler pipeline** — [`@tevm/config`](/api/config),
+  [`@tevm/resolutions`](/api/resolutions), [`@tevm/compiler`](/api/compiler),
+  [`@tevm/solc`](/api/solc), [`@tevm/runtime`](/api/runtime),
+  [`@tevm/bundler-cache`](/api/bundler-cache) and
+  [`@tevm/base-bundler`](/api/base-bundler).
+- **Editor tooling** — the [`@tevm/ts-plugin`](/api/ts-plugin) TypeScript
+  language service plugin, the [`@tevm/lsp`](/api/lsp) language server, and the
+  Tevm VS Code extension. They share the resolution and compilation code with
+  the bundlers, so the editor and the build agree about what a `.sol` import
+  means.
+- **[`@tevm/effect`](/api/effect)** — the small Effect-based helpers the rest of
+  the pipeline is built on.
+
+See [Ecosystem & repo layout](/ecosystem) for how this repository relates to
+`tevm` core and the other split repositories.
+
+## Get started
+
+```bash
+npm install --save-dev @tevm/vite-plugin @tevm/ts-plugin
+```
+
+```ts [vite.config.ts]
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+	plugins: [vitePluginTevm()],
+})
+```
+
+Head to [Getting started](/getting-started) for the complete walkthrough,
+including the TypeScript setup that makes your editor understand `.sol` imports.
+
+## The Tevm family
+
+This site is one of the `*.tevm.sh` docs sites — jump between them:
+
+<TevmSites />

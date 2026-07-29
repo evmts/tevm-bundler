@@ -1,0 +1,128 @@
+---
+title: '@tevm/bundler-cache'
+description: The filesystem cache for compiled Solidity artifacts and generated modules.
+---
+
+# `@tevm/bundler-cache`
+
+```bash
+npm install --save-dev @tevm/bundler-cache
+```
+
+Stores solc artifacts and generated modules under `.tevm/` so that solc runs
+only when something that affects the output has changed. For the operational
+side — layout, invalidation, CI — see [Caching](/guides/caching).
+
+## `createCache(cacheDir, fs, cwd)`
+
+```ts
+import { createCache } from '@tevm/bundler-cache'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+
+const fao = {
+	existsSync,
+	exists: async (path: string) => existsSync(path),
+	readFile: (path: string, encoding: BufferEncoding) => readFile(path, { encoding }),
+	readFileSync,
+	writeFileSync,
+	writeFile,
+	statSync,
+	stat,
+	mkdirSync,
+	mkdir,
+}
+
+const cache = createCache('.tevm', fao, process.cwd())
+```
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `cacheDir` | `string` | Cache directory. Relative paths resolve from `cwd`; absolute paths are namespaced per project. |
+| `fs` | `FileAccessObject` | Filesystem abstraction |
+| `cwd` | `string` | Base directory for resolving module paths |
+
+**Returns** a `Cache`.
+
+## The `Cache` interface
+
+Three cached item kinds, each with read/write and async/sync variants:
+
+| Method | Returns | Notes |
+| --- | --- | --- |
+| `readArtifacts(id, fingerprint?)` | `Promise<ResolvedArtifacts \| undefined>` | `undefined` on a miss or a fingerprint mismatch |
+| `readArtifactsSync(id, fingerprint?)` | `ResolvedArtifacts \| undefined` | |
+| `writeArtifacts(id, artifacts, fingerprint?)` | `Promise<string>` | Returns the path written |
+| `writeArtifactsSync(id, artifacts, fingerprint?)` | `string` | |
+| `readDts(id)` / `readDtsSync(id)` | `string \| undefined` | Generated `.d.ts` |
+| `writeDts(id, dts)` / `writeDtsSync(id, dts)` | `string` | |
+| `readMjs(id)` / `readMjsSync(id)` | `string \| undefined` | Generated ES module |
+| `writeMjs(id, mjs)` / `writeMjsSync(id, mjs)` | `string` | |
+
+`id` is always the path to the `.sol` entry file.
+
+```ts
+const artifacts = await cache.readArtifacts('./contracts/Token.sol')
+
+if (artifacts === undefined) {
+	// cache miss — compile, then write back
+	const compiled = await compileSomehow()
+	await cache.writeArtifacts('./contracts/Token.sol', compiled)
+}
+```
+
+Every read returns `undefined` rather than throwing on a miss, so a cold cache
+and a corrupt cache behave the same way: recompile.
+
+## The compile fingerprint
+
+The optional `compileFingerprint` argument is how the cache knows that
+artifacts compiled under different settings do not apply. Pass the same value to
+`read*` and `write*`; a mismatch is treated as a miss.
+
+`@tevm/base-bundler` builds it with `createCompileFingerprint`, hashing:
+
+- `config.foundryProject`, `config.jsonAsConst`, `config.libs`,
+  `config.remappings`,
+- the solc version in use,
+- whether the AST and bytecode were requested.
+
+Keys are sorted before hashing, so reordering your remappings does not
+invalidate anything. `cacheDir` and `debug` are excluded because they cannot
+change compiler output.
+
+File modification times are checked independently, which is what catches an
+edited source file.
+
+## Paths
+
+For `contracts/Token.sol` with `cacheDir: '.tevm'`:
+
+```
+.tevm/contracts/Token.sol/artifacts.json
+.tevm/contracts/Token.sol/contract.d.ts
+.tevm/contracts/Token.sol/contract.mjs
+.tevm/contracts/Token.sol/metadata.json
+```
+
+Two special cases:
+
+- **Absolute `cacheDir`** — entries go under
+  `<cacheDir>/__projects__/<hash-of-cwd>/…`, so several projects can share one
+  directory.
+- **Sources outside `cwd`** — a linked workspace package, say — go under
+  `__external__/<full path>` rather than escaping the cache directory with
+  `../`.
+
+## Types
+
+```ts
+import type { Cache, CachedItem, FileAccessObject } from '@tevm/bundler-cache'
+
+// CachedItem = 'artifactsJson' | 'dts' | 'mjs'
+```
+
+This `FileAccessObject` additionally accepts optional `rename` and `renameSync`
+members, used for atomic cache writes when available.

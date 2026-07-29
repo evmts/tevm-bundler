@@ -1,0 +1,126 @@
+---
+title: Bun
+description: Import Solidity files in Bun with @tevm/bun-plugin.
+---
+
+# Bun
+
+```bash
+bun add --dev @tevm/bun-plugin @tevm/ts-plugin
+bun add @tevm/contract
+```
+
+## Register the plugin
+
+Bun plugins are registered at runtime, so they need a preload file:
+
+```ts [plugins.ts]
+import { bunPluginTevm } from '@tevm/bun-plugin'
+import { plugin } from 'bun'
+
+plugin(bunPluginTevm({ solc: '0.8.30' }))
+```
+
+```toml [bunfig.toml]
+preload = ["./plugins.ts"]
+
+[test]
+preload = ["./plugins.ts"]
+```
+
+The `[test]` section matters: `bun test` uses its own preload list, and without
+it your tests will fail to resolve `.sol` imports even though `bun run` works.
+
+`bunPluginTevm` takes a single options object whose only field is `solc`. The
+rest of the configuration lives in
+[`tevm.config.json`](/guides/configuration).
+
+## Complete example
+
+```solidity [contracts/Escrow.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Escrow {
+    address public immutable beneficiary;
+    bool public released;
+
+    constructor(address _beneficiary) {
+        beneficiary = _beneficiary;
+    }
+
+    function release() public {
+        require(!released, "already released");
+        released = true;
+    }
+}
+```
+
+```ts [src/index.ts]
+import { createMemoryClient } from 'tevm'
+import { Escrow } from '../contracts/Escrow.s.sol'
+
+const beneficiary = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as const
+
+const client = createMemoryClient()
+const escrow = await client.deployContract(Escrow, [beneficiary])
+await client.mine({ blocks: 1 })
+
+console.log(await client.readContract(escrow.read.beneficiary()))
+// 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+
+await client.writeContract(escrow.write.release())
+await client.mine({ blocks: 1 })
+
+console.log(await client.readContract(escrow.read.released()))
+// true
+```
+
+```bash
+bun run src/index.ts
+```
+
+## Testing
+
+With the `[test]` preload in place, `.sol` imports work directly in `bun test`:
+
+```ts [src/escrow.test.ts]
+import { expect, test } from 'bun:test'
+import { createMemoryClient } from 'tevm'
+import { Escrow } from '../contracts/Escrow.s.sol'
+
+test('starts unreleased', async () => {
+	const client = createMemoryClient()
+	const escrow = await client.deployContract(Escrow, [
+		'0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+	])
+	await client.mine({ blocks: 1 })
+
+	expect(await client.readContract(escrow.read.released())).toBe(false)
+})
+```
+
+## Custom file access
+
+`@tevm/bun-plugin` also exports the Bun-native file access object it uses
+internally, which is useful if you are driving
+[`@tevm/base-bundler`](/api/base-bundler) yourself inside a Bun process:
+
+```ts
+import { bunFileAccesObject } from '@tevm/bun-plugin'
+
+const source = await bunFileAccesObject.readFile('./contracts/Escrow.s.sol', 'utf8')
+console.log(source.slice(0, 40))
+```
+
+Note the single `s` in `bunFileAccesObject` — the typo is part of the published
+API and is kept for compatibility.
+
+## Notes
+
+- The Bun plugin resolves modules **synchronously** where Bun requires it, which
+  is why it uses the sync half of the bundler API
+  (`resolveEsmModuleSync`). Behaviour is otherwise identical to the other
+  adapters.
+- Bun does not type-check. Use [`@tevm/ts-plugin`](/api/ts-plugin) plus
+  `tsc --noEmit` for types.

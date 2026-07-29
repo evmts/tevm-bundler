@@ -1,0 +1,145 @@
+---
+title: Bundler plugins
+description: The seven build-tool adapters and the one option they share.
+---
+
+# Bundler plugins
+
+Every adapter is a wrapper around [`@tevm/unplugin`](/api/unplugin) and takes
+the same options object. The only difference between them is the shape their
+build tool expects.
+
+## `CompilerOption`
+
+```ts
+type CompilerOption = keyof typeof import('@tevm/solc').releases
+// '0.8.30' | '0.8.29' | ... | '0.4.11'
+```
+
+```ts
+type TevmPluginOptions = {
+	/**
+	 * Solc compiler version to use.
+	 * Defaults to the version of the `solc` package installed alongside the plugin.
+	 */
+	solc?: CompilerOption
+}
+```
+
+An unknown version throws at plugin construction time with
+`Invalid solc compiler passed to Tevm plugin` — the check is a zod schema over
+the release list in [`@tevm/solc`](/api/solc), so typos fail fast rather than at
+compile time.
+
+Everything else is configured in
+[`tevm.config.json`](/guides/configuration), because the TypeScript plugin and
+language server also need it and they cannot read your bundler config.
+
+## `@tevm/vite-plugin`
+
+```ts
+import { vitePluginTevm } from '@tevm/vite-plugin'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+	plugins: [vitePluginTevm({ solc: '0.8.30' })],
+})
+```
+
+Returns a Vite plugin with `enforce: 'pre'`. See [the guide](/guides/vite).
+
+## `@tevm/rollup-plugin`
+
+```ts
+import { rollupPluginTevm } from '@tevm/rollup-plugin'
+import { defineConfig } from 'rollup'
+
+export default defineConfig({
+	input: 'src/index.ts',
+	output: { dir: 'dist', format: 'esm' },
+	plugins: [rollupPluginTevm({ solc: '0.8.30' })],
+})
+```
+
+## `@tevm/esbuild-plugin`
+
+```ts
+import { esbuildPluginTevm } from '@tevm/esbuild-plugin'
+import { build } from 'esbuild'
+
+await build({
+	entryPoints: ['src/index.ts'],
+	outdir: 'dist',
+	bundle: true,
+	plugins: [esbuildPluginTevm({ solc: '0.8.30' })],
+})
+```
+
+## `@tevm/webpack-plugin`
+
+The odd one out: a **class**, used with `new`.
+
+```js
+const { WebpackPluginTevm } = require('@tevm/webpack-plugin')
+
+module.exports = {
+	plugins: [new WebpackPluginTevm({ solc: '0.8.30' })],
+}
+```
+
+## `@tevm/rspack-plugin`
+
+A factory, not a constructor, despite Rspack's webpack compatibility.
+
+```js
+import { rspackPluginTevm } from '@tevm/rspack-plugin'
+
+export default {
+	plugins: [rspackPluginTevm({ solc: '0.8.30' })],
+}
+```
+
+Experimental — see [the guide](/guides/rspack).
+
+## `@tevm/bun-plugin`
+
+```ts
+import { bunPluginTevm } from '@tevm/bun-plugin'
+import { plugin } from 'bun'
+
+plugin(bunPluginTevm({ solc: '0.8.30' }))
+```
+
+Also exports:
+
+- `bunFileAccesObject` — a Bun-native `FileAccessObject` (note the single `s`;
+  the typo is part of the published API),
+- `file` — the Bun `file` helper it builds on.
+
+## `@tevm/requirejs-plugin`
+
+A RequireJS loader plugin implementing `load` and `normalize`.
+
+```js
+const { requirejsPluginTevm } = require('@tevm/requirejs-plugin')
+
+define('tevm-sol', [], function () {
+	return requirejsPluginTevm({ solc: '0.8.30' })
+})
+```
+
+Also exports `requirejsFileAccessObject`.
+
+## Shared behaviour
+
+All adapters:
+
+- claim only `.sol` files, and only when no sidecar module (`.sol.ts`,
+  `.sol.js`, `.sol.mjs`, `.sol.cjs`, `.sol.d.ts`) exists beside them;
+- request bytecode only for `.s.sol` files;
+- run before other plugins where the build tool supports ordering, so nothing
+  else has to know what a `.sol` file is;
+- register non-`node_modules` files from the resolved import graph as watch
+  dependencies where the build tool has an API for it;
+- resolve `@tevm/contract` to the copy in your project root, so a Solidity file
+  imported out of `node_modules` still produces contracts from your version.

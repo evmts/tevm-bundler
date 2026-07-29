@@ -1,0 +1,67 @@
+---
+title: Rspack
+description: Import Solidity files in an Rspack build with @tevm/rspack-plugin.
+---
+
+# Rspack
+
+[Rspack](https://rspack.dev) is a Rust-based bundler with a webpack-compatible
+plugin API. `@tevm/rspack-plugin` is experimental — it works, but it sees less
+use than the Vite and webpack adapters, so report anything surprising.
+
+```bash
+npm install --save-dev @tevm/rspack-plugin @tevm/ts-plugin
+npm install @tevm/contract
+```
+
+## Configuration
+
+Unlike the webpack adapter, this one is a **factory** — no `new`:
+
+```js [rspack.config.mjs]
+import { rspackPluginTevm } from '@tevm/rspack-plugin'
+
+export default {
+	entry: './src/index.ts',
+	output: {
+		filename: 'bundle.js',
+	},
+	plugins: [rspackPluginTevm({ solc: '0.8.30' })],
+}
+```
+
+The only option is `solc`. See [Configuration](/guides/configuration) for
+everything else.
+
+## Complete example
+
+```solidity [src/contracts/Adder.s.sol]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Adder {
+    function add(uint256 a, uint256 b) public pure returns (uint256) {
+        return a + b;
+    }
+}
+```
+
+```ts [src/index.ts]
+import { createMemoryClient } from 'tevm'
+import { Adder } from './contracts/Adder.s.sol'
+
+const client = createMemoryClient()
+const adder = await client.deployContract(Adder)
+await client.mine({ blocks: 1 })
+
+console.log(await client.readContract(adder.read.add(2n, 3n)))
+// 5n
+```
+
+## Notes
+
+- Rspack reuses webpack's plugin lifecycle, so behaviour matches the
+  [webpack guide](/guides/webpack) — including the fact that the Tevm plugin
+  claims `.sol` files before any module rule can.
+- Because Rspack's own type checking is opt-in, run `tsc --noEmit` separately to
+  benefit from the [TypeScript plugin](/api/ts-plugin).
