@@ -7,6 +7,10 @@
 		"url": "git+https://github.com/evmts/tevm-bundler.git",
 		"directory": "packages/vscode"
 	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
 	"categories": [
 		"Programming Languages"
 	],

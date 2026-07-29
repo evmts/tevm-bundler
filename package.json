@@ -8,6 +8,10 @@
 		"type": "git",
 		"url": "https://github.com/evmts/tevm-bundler.git"
 	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
 	"scripts": {
 		"build": "pnpm --recursive --if-present run build",
 		"changeset": "changeset",

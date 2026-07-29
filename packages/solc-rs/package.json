@@ -19,5 +19,9 @@
 		"type": "git",
 		"url": "git+https://github.com/evmts/tevm-bundler.git",
 		"directory": "packages/solc-rs"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }
