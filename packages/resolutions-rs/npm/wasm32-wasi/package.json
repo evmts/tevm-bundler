@@ -3,8 +3,8 @@
 	"version": "1.0.0-rc.151",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/resolutions-rs/npm/wasm32-wasi"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/resolutions-rs/npm/wasm32-wasi"
 	},
 	"cpu": [
 		"wasm32"
@@ -23,5 +23,9 @@
 	"browser": "tevm_resolutions_rs.wasi-browser.js",
 	"dependencies": {
 		"@napi-rs/wasm-runtime": "^1.1.4"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

@@ -6,7 +6,8 @@
 		"allowSyntheticDefaultImports": true,
 		"resolveJsonModule": true,
 		"types": ["node"],
-		"incremental": false
+		"incremental": false,
+		"ignoreDeprecations": "6.0"
 	},
 	"include": ["src", "src/**/*.json", "package.json"]
 }

@@ -2,26 +2,22 @@ type Uri = {
 	fsPath: string
 }
 
-type Document = {
-	languageId: string
-}
-
 type Client = {
 	start(): Promise<unknown>
 	stop(): Promise<unknown>
 }
 
+type LabsInfo = {
+	extensionExports: unknown
+	addLanguageClient(client: Client): void
+}
+
 type Dependencies = {
 	joinPath(base: Uri, ...segments: string[]): Uri
-	createClient(
-		id: string,
-		name: string,
-		serverOptions: unknown,
-		clientOptions: unknown,
-	): Client
-	activateAutoInsertion(clients: Client[], selector: (document: Document) => boolean): void
+	createClient(id: string, name: string, serverOptions: unknown, clientOptions: unknown): Client
+	activateAutoInsertion(selector: readonly { language: string }[], client: Client): void
+	createLabsInfo(languageServerProtocol: unknown): LabsInfo
 	transportKindIpc: unknown
-	supportLabsVersion: unknown
 	languageServerProtocol: unknown
 }
 
@@ -45,25 +41,13 @@ export async function activateExtension(extensionUri: Uri, dependencies: Depende
 		documentSelector: supportedLanguages.map((language) => ({ language })),
 		initializationOptions: {},
 	}
-	const client = dependencies.createClient(
-		'tevm-language-server',
-		'Tevm Language Server',
-		serverOptions,
-		clientOptions,
-	)
+	const client = dependencies.createClient('tevm-language-server', 'Tevm Language Server', serverOptions, clientOptions)
 	await client.start()
-	dependencies.activateAutoInsertion(
-		[client],
-		(document) => supportedLanguages.includes(document.languageId as (typeof supportedLanguages)[number]),
-	)
+	dependencies.activateAutoInsertion(clientOptions.documentSelector, client)
+	const labsInfo = dependencies.createLabsInfo(dependencies.languageServerProtocol)
+	labsInfo.addLanguageClient(client)
 	return {
 		client,
-		exports: {
-			volarLabs: {
-				version: dependencies.supportLabsVersion,
-				languageClients: [client],
-				languageServerProtocol: dependencies.languageServerProtocol,
-			},
-		},
+		exports: labsInfo.extensionExports,
 	}
 }

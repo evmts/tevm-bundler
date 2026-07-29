@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/runtime-rs/npm/win32-ia32-msvc"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/runtime-rs/npm/win32-ia32-msvc"
 	},
 	"os": [
 		"win32"
@@ -19,5 +19,9 @@
 	],
 	"engines": {
 		"node": ">= 14"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

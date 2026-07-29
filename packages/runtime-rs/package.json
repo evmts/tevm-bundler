@@ -5,8 +5,8 @@
 	"description": "Rust implementation of Tevm runtime",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/runtime-rs"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/runtime-rs"
 	},
 	"license": "MIT",
 	"type": "commonjs",
@@ -24,7 +24,9 @@
 		"build:napi": "napi build --platform --release",
 		"build:release": "cargo build --release",
 		"prepublishOnly": "napi prepublish -t npm",
-		"test": "cargo test"
+		"test": "cargo test",
+		"typecheck": "cargo check",
+		"test:run": "cargo test"
 	},
 	"devDependencies": {
 		"@napi-rs/cli": "^3.6.2"
@@ -45,5 +47,9 @@
 			"i686-pc-windows-msvc",
 			"wasm32-wasip1-threads"
 		]
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

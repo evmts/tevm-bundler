@@ -6,7 +6,8 @@
 		"allowSyntheticDefaultImports": true,
 		"resolveJsonModule": true,
 		"noImplicitAny": false,
-		"types": ["vitest/globals", "node"]
+		"types": ["vitest/globals", "node"],
+		"ignoreDeprecations": "6.0"
 	},
 	"include": ["src", "src/**/*.json", "package.json"],
 	"exclude": ["**/*.spec.ts", "**/*.test.ts"]

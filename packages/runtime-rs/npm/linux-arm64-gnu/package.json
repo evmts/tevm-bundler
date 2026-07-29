@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/runtime-rs/npm/linux-arm64-gnu"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/runtime-rs/npm/linux-arm64-gnu"
 	},
 	"os": [
 		"linux"
@@ -22,5 +22,9 @@
 	},
 	"libc": [
 		"glibc"
-	]
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
 }

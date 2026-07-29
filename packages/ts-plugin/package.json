@@ -13,8 +13,8 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "lsp/ts-plugin"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/ts-plugin"
 	},
 	"license": "MIT",
 	"contributors": [
@@ -46,7 +46,7 @@
 		"types"
 	],
 	"scripts": {
-		"build": "nx run-many --targets=build:dist,build:types --projects=@tevm/ts-plugin ",
+		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",
 		"clean": "rm -rf node_modules && rm -rf artifacts && rm -rf dist && rm -rf cache",
@@ -61,7 +61,7 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest --coverage",
 		"test:coverage": "vitest run --coverage",
-		"test:run": "vitest --run"
+		"test:run": "vitest run"
 	},
 	"dependencies": {
 		"@tevm/base-bundler": "workspace:^",
@@ -74,12 +74,16 @@
 	},
 	"devDependencies": {
 		"@tevm/config": "workspace:^",
-		"@tevm/contract": "workspace:^",
-		"@tevm/tsupconfig": "workspace:^",
+		"@tevm/contract": "^1.0.0-next.149",
+		"@tevm/tsupconfig": "^1.0.0-next.148",
 		"@types/node": "^25.9.0",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
 		"typescript": ">=5.0.0"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

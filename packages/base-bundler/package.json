@@ -13,8 +13,8 @@
 	"homepage": "https://tevm.sh",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/base-bundler"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/base-bundler"
 	},
 	"license": "MIT",
 	"author": "roninjin10",
@@ -46,7 +46,7 @@
 	],
 	"scripts": {
 		"all": "bun run build && bun run format && bun run lint && bun run test:coverage && bun run generate:docs && bun lint:deps && bun lint:package",
-		"build": "nx run-many --targets=build:dist,build:types --projects=@tevm/base-bundler ",
+		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",
 		"clean": "rm -rf node_modules && rm -rf artifacts && rm -rf dist && rm -rf cache",
@@ -60,7 +60,8 @@
 		"test": "vitest --coverage",
 		"test:coverage": "vitest run --coverage",
 		"test:run": "vitest run",
-		"test:ui": "vitest --ui"
+		"test:ui": "vitest --ui",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@tevm/bundler-cache": "workspace:^",
@@ -68,14 +69,15 @@
 		"@tevm/config": "workspace:^",
 		"@tevm/runtime": "workspace:^",
 		"@tevm/solc": "workspace:^",
-		"@tevm/tsconfig": "workspace:^",
-		"@tevm/tsupconfig": "workspace:^",
+		"@tevm/tsconfig": "^1.0.0-next.142",
+		"@tevm/tsupconfig": "^1.0.0-next.148",
 		"@types/node": "^25.9.0",
 		"effect": "3.21.2",
 		"solc": "0.8.35",
 		"solidity-ast": "^0.4.62"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"provenance": true
 	}
 }

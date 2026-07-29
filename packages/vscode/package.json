@@ -4,8 +4,8 @@
 	"version": "1.0.0-rc.151",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "lsp/vscode"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/vscode"
 	},
 	"categories": [
 		"Programming Languages"
@@ -24,16 +24,18 @@
 	],
 	"main": "./dist/client.js",
 	"scripts": {
-		"build": "node scripts/build -- --minify",
+		"build": "node scripts/build.js --minify",
 		"watch": "npm run build -- --watch",
 		"pack": "npm run build && vsce package --pre-release",
 		"release": "npm run build && vsce publish --pre-release",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"typecheck": "tsc --noEmit",
+		"test:run": "vitest run"
 	},
 	"devDependencies": {
 		"@tevm/lsp": "workspace:^",
-		"@tevm/tsconfig": "workspace:^",
-		"@tevm/tsupconfig": "workspace:^",
+		"@tevm/tsconfig": "^1.0.0-next.142",
+		"@tevm/tsupconfig": "^1.0.0-next.148",
 		"@types/vscode": "^1.120.0",
 		"@volar/language-server": "~2.4.28",
 		"@volar/vscode": "~2.4.28",

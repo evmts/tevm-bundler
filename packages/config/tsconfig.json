@@ -5,7 +5,8 @@
 		"outDir": "types",
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
-		"types": ["node"]
+		"types": ["node"],
+		"ignoreDeprecations": "6.0"
 	},
 	"include": ["src", "src/**/*.json"],
 	"exclude": ["src/fixtures/invalidJson"]

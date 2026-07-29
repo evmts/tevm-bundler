@@ -27,7 +27,18 @@ serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.140"
 
 # Solidity parsing
-solar = { version = "0.1.2", package = "solar-compiler" }
+solar = { version = "=0.1.2", package = "solar-compiler" }
+# Solar's 0.1.x crates are released as a coordinated set but declare caret
+# ranges internally. Pin the set to prevent Cargo from mixing incompatible
+# minor releases when this package is built without the former monorepo lock.
+solar-ast = "=0.1.2"
+solar-cli = "=0.1.2"
+solar-config = "=0.1.2"
+solar-data-structures = "=0.1.2"
+solar-interface = "=0.1.2"
+solar-macros = "=0.1.2"
+solar-parse = "=0.1.2"
+solar-sema = "=0.1.2"
 tempfile = "3.19.1"
 
 # NAPI bindings

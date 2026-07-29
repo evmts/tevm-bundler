@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/runtime-rs/npm/linux-arm-gnueabihf"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/runtime-rs/npm/linux-arm-gnueabihf"
 	},
 	"os": [
 		"linux"
@@ -19,5 +19,9 @@
 	],
 	"engines": {
 		"node": ">= 14"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

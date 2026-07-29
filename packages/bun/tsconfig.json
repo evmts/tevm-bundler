@@ -9,7 +9,8 @@
 		"rootDir": "src",
 		"outDir": "types",
 		"skipLibCheck": true,
-		"types": ["bun-types", "vitest/globals"]
+		"types": ["bun-types", "vitest/globals"],
+		"ignoreDeprecations": "6.0"
 	},
 	"include": ["src", "src/**/*.json", "src/**/*.sol"],
 	"exclude": ["**/*.spec.ts", "**/*.test.ts"]

@@ -1,5 +1,5 @@
 import * as serverProtocol from '@volar/language-server/protocol'
-import { type ExportsInfoForLabs, activateAutoInsertion, supportLabsVersion } from '@volar/vscode'
+import { activateAutoInsertion, createLabsInfo, type LabsInfo } from '@volar/vscode'
 import * as vscode from 'vscode'
 import * as lsp from 'vscode-languageclient/node'
 import { activateExtension } from './activateExtension.js'
@@ -10,19 +10,21 @@ export async function activate(context: vscode.ExtensionContext) {
 	const activated = await activateExtension(context.extensionUri, {
 		joinPath: vscode.Uri.joinPath,
 		createClient: (id, name, serverOptions, clientOptions) =>
-			new lsp.LanguageClient(
-				id,
-				name,
-				serverOptions as lsp.ServerOptions,
-				clientOptions as lsp.LanguageClientOptions,
-			),
-		activateAutoInsertion,
+			new lsp.LanguageClient(id, name, serverOptions as lsp.ServerOptions, clientOptions as lsp.LanguageClientOptions),
+		activateAutoInsertion: (selector, languageClient) =>
+			activateAutoInsertion(selector as vscode.DocumentSelector, languageClient as lsp.BaseLanguageClient),
+		createLabsInfo: (protocol) => {
+			const labsInfo = createLabsInfo(protocol as typeof serverProtocol)
+			return {
+				extensionExports: labsInfo.extensionExports,
+				addLanguageClient: (languageClient) => labsInfo.addLanguageClient(languageClient as lsp.BaseLanguageClient),
+			}
+		},
 		transportKindIpc: lsp.TransportKind.ipc,
-		supportLabsVersion,
 		languageServerProtocol: serverProtocol,
 	})
 	client = activated.client as lsp.BaseLanguageClient
-	return activated.exports satisfies ExportsInfoForLabs
+	return activated.exports as LabsInfo
 }
 
 export function deactivate(): Thenable<any> | undefined {

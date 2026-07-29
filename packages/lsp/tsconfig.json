@@ -2,7 +2,10 @@
 	"extends": "@tevm/tsconfig/base",
 	"compilerOptions": {
 		"outDir": "dist",
-		"rootDir": "src"
+		"rootDir": "src",
+		"ignoreDeprecations": "6.0",
+		"skipLibCheck": true,
+		"types": ["node"]
 	},
 	"include": ["src"]
 }

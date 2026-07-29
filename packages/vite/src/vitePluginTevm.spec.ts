@@ -15,7 +15,7 @@ describe('vitePluginTevm', () => {
 			build: {
 				write: false,
 				rolldownOptions: {
-					external: ['tevm/contract'],
+					external: ['@tevm/contract', 'tevm/contract'],
 				},
 				lib: {
 					entry: path.join(fixtureDirectory, 'entry.ts'),

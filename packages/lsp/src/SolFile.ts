@@ -1,11 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { bundler, type FileAccessObject } from '@tevm/base-bundler'
 import { createCache } from '@tevm/bundler-cache'
 import { loadConfig } from '@tevm/config'
 import type { IScriptSnapshot, VirtualCode } from '@volar/language-core'
 import { runSync } from 'effect/Effect'
-import path from 'node:path'
 import solc from 'solc'
 
 const hashText = (text: string): number => {
@@ -80,13 +80,7 @@ export class SolFile implements VirtualCode {
 			writeFileSync,
 		} as unknown as FileAccessObject
 		const cache = createCache(c.cacheDir, fao, projectRoot)
-		const b = bundler(
-			c,
-			console,
-			fao,
-			solc,
-			cache,
-		)
+		const b = bundler(c, console, fao, solc, cache)
 		const tsFile = b.resolveTsModuleSync(this.fileName, projectRoot, false, false)
 		this.snapshot = {
 			getText(start, end) {

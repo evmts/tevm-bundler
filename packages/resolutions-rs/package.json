@@ -5,8 +5,8 @@
 	"description": "Rust implementation of solidity resolution",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/resolutions-rs"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/resolutions-rs"
 	},
 	"license": "MIT",
 	"type": "commonjs",
@@ -25,7 +25,9 @@
 		"build:release": "cargo build --release",
 		"example": "node examples/usage.js",
 		"prepublishOnly": "napi prepublish -t npm",
-		"test": "cargo test"
+		"test": "cargo test",
+		"typecheck": "cargo check",
+		"test:run": "cargo test"
 	},
 	"devDependencies": {
 		"@napi-rs/cli": "^3.6.2"
@@ -46,5 +48,9 @@
 			"i686-pc-windows-msvc",
 			"wasm32-wasip1-threads"
 		]
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

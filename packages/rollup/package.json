@@ -12,8 +12,8 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/rollup"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/rollup"
 	},
 	"license": "MIT",
 	"contributors": [
@@ -43,7 +43,7 @@
 		"src"
 	],
 	"scripts": {
-		"build": "nx run-many --targets=build:dist,build:types --projects=@tevm/rollup-plugin ",
+		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",
 		"clean": "rm -rf node_modules && rm -rf artifacts && rm -rf dist && rm -rf cache",
@@ -57,17 +57,19 @@
 		"test": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"test:run": "vitest run",
-		"test:ui": "vitest --ui"
+		"test:ui": "vitest --ui",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@tevm/unplugin": "workspace:^"
 	},
 	"devDependencies": {
-		"@tevm/tsconfig": "workspace:^",
-		"@tevm/tsupconfig": "workspace:^",
+		"@tevm/tsconfig": "^1.0.0-next.142",
+		"@tevm/tsupconfig": "^1.0.0-next.148",
 		"vitest": "^4.1.6"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"provenance": true
 	}
 }

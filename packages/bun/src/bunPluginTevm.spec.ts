@@ -84,7 +84,9 @@ vi.stubGlobal('process', {
 	cwd: () => mockCwd,
 })
 
-const contractPath = '../../../examples/bun/ExampleContract.sol'
+// Keep this fixture in the package so the standalone repository does not depend
+// on the original monorepo's examples workspace.
+const contractPath = './fixtures/ExampleContract.sol'
 
 describe('bunPluginTevm', () => {
 	beforeEach(() => {

@@ -1,0 +1,43 @@
+{
+	"name": "@tevm/bundler-workspace",
+	"version": "0.0.0",
+	"private": true,
+	"description": "The TEVM compiler, bundler plugins, language server, and editor tooling",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/evmts/tevm-bundler.git"
+	},
+	"scripts": {
+		"build": "pnpm --recursive --if-present run build",
+		"changeset": "changeset",
+		"changeset-version": "changeset version && pnpm install --lockfile-only",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"lint": "biome check .",
+		"release": "pnpm build && changeset publish",
+		"test": "pnpm --recursive --if-present run test:run",
+		"typecheck": "pnpm --recursive --if-present run typecheck"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.15",
+		"@changesets/changelog-github": "^0.7.0",
+		"@changesets/cli": "^2.31.0",
+		"@tevm/tsconfig": "^1.0.0-next.142",
+		"@tevm/tsupconfig": "^1.0.0-next.148",
+		"@types/node": "^25.9.0",
+		"@vitest/coverage-v8": "^4.1.6",
+		"@vitest/ui": "^4.1.6",
+		"bun-types": "^1.3.14",
+		"tsup": "^8.5.1",
+		"typedoc": "^0.28.19",
+		"typedoc-plugin-markdown": "^4.11.0",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.6"
+	},
+	"packageManager": "pnpm@9.15.9",
+	"engines": {
+		"node": "^24.0.0",
+		"pnpm": "^9.0.0"
+	}
+}

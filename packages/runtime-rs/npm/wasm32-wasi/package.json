@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/runtime-rs/npm/wasm32-wasi"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/runtime-rs/npm/wasm32-wasi"
 	},
 	"main": "tevm_runtime_rs.wasi.cjs",
 	"files": [
@@ -23,5 +23,9 @@
 		"browser": "./tevm_runtime_rs.wasi-browser.js",
 		"node": "./tevm_runtime_rs.wasi.cjs",
 		"default": "./tevm_runtime_rs.wasi.cjs"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
 	}
 }

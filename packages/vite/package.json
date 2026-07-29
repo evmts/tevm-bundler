@@ -12,8 +12,8 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/evmts/tevm-monorepo.git",
-		"directory": "bundler-packages/vite"
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/vite"
 	},
 	"license": "MIT",
 	"contributors": [
@@ -47,7 +47,7 @@
 		"//test:run": "vitest run",
 		"//test:ui": "vitest --ui",
 		"test:coverage": "vitest run --coverage",
-		"build": "nx run-many --targets=build:dist,build:types --projects=@tevm/vite-plugin ",
+		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",
 		"clean": "rm -rf node_modules && rm -rf artifacts && rm -rf dist && rm -rf cache",
@@ -57,16 +57,20 @@
 		"lint": "biome check . --write --unsafe",
 		"lint:check": "biome check . --verbose",
 		"lint:deps": "bunx depcheck",
-		"lint:package": "bunx publint --strict && attw --pack"
+		"lint:package": "bunx publint --strict && attw --pack",
+		"typecheck": "tsc --noEmit",
+		"test:run": "vitest run"
 	},
 	"dependencies": {
 		"@tevm/unplugin": "workspace:^"
 	},
 	"devDependencies": {
-		"@tevm/tsconfig": "workspace:^",
-		"@tevm/tsupconfig": "workspace:^"
+		"@tevm/tsconfig": "^1.0.0-next.142",
+		"@tevm/tsupconfig": "^1.0.0-next.148",
+		"vite": "^8.1.5"
 	},
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"provenance": true
 	}
 }

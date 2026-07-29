@@ -1,0 +1,8 @@
+packages:
+  - packages/*
+  - packages/resolutions-rs/npm/*
+  - packages/runtime-rs/npm/*
+
+onlyBuiltDependencies:
+  - "@biomejs/biome"
+  - esbuild
