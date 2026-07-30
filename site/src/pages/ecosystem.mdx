@@ -47,8 +47,10 @@ the portable fallback.
 ## `evmts/tevm-monorepo` — Tevm core
 
 The in-process Ethereum node and everything around it: `tevm`,
-`@tevm/memory-client`, `@tevm/contract`, `@tevm/actions`, the VM, state, and
-blockchain packages.
+`@tevm/memory-client`, `@tevm/contract`, `@tevm/utils`, `@tevm/logger`,
+`@tevm/actions`, the VM, state, and blockchain packages. Contract, utility, and
+logger packages deliberately remain in core; similarly named split repositories
+were archived and must not be used as dependency sources.
 
 The relationship is deliberately one-directional at build time:
 
@@ -69,8 +71,6 @@ the EVM, and vice versa. Documentation for core lives at
 
 | Repository | Site | Contents |
 | --- | --- | --- |
-| `evmts/tevm-utils` | [utils.tevm.sh](https://utils.tevm.sh) | Low-level Ethereum utilities shared by core and the bundler |
-| `evmts/tevm-contract` | [contract.tevm.sh](https://contract.tevm.sh) | `createContract` and the `Contract` type the generated modules use |
 | `evmts/tevm-cli` | [cli.tevm.sh](https://cli.tevm.sh) | The `tevm` command line tool |
 
 Two things that used to sit next to the bundler are explicitly **not** here:
@@ -93,5 +93,6 @@ Two things that used to sit next to the bundler are explicitly **not** here:
 ## Versioning
 
 Every package in this repository is versioned and published together from
-changesets, currently on the `1.0.0-rc.151` line. Packages in other repositories
-version independently, so do not assume a matching version number across repos.
+changesets. Packages in other repositories version independently, so do not
+assume a matching version number across repos. Use the npm dist tag for the
+current release instead of copying a version from another Tevm package.

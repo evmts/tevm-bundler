@@ -1,0 +1,27 @@
+{
+	"name": "@tevm/resolutions-rs-win32-x64-msvc",
+	"version": "1.0.0-rc.151",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/evmts/tevm-bundler.git",
+		"directory": "packages/resolutions-rs/npm/win32-x64-msvc"
+	},
+	"os": [
+		"win32"
+	],
+	"cpu": [
+		"x64"
+	],
+	"main": "tevm_resolutions_rs.win32-x64-msvc.node",
+	"files": [
+		"tevm_resolutions_rs.win32-x64-msvc.node"
+	],
+	"engines": {
+		"node": ">= 14"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

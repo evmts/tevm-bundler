@@ -21,9 +21,6 @@ export default defineConfig({
 			text: 'tevm.sh family',
 			items: [
 				{ text: 'tevm.sh — core', link: 'https://tevm.sh', external: true },
-				{ text: 'contract.tevm.sh', link: 'https://contract.tevm.sh', external: true },
-				{ text: 'utils.tevm.sh', link: 'https://utils.tevm.sh', external: true },
-				{ text: 'logger.tevm.sh', link: 'https://logger.tevm.sh', external: true },
 				{ text: 'test.tevm.sh', link: 'https://test.tevm.sh', external: true },
 				{ text: 'ethers.tevm.sh', link: 'https://ethers.tevm.sh', external: true },
 				{ text: 'mud.tevm.sh', link: 'https://mud.tevm.sh', external: true },

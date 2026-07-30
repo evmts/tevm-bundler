@@ -408,17 +408,15 @@ importers:
 
   packages/resolutions-rs/npm/linux-arm64-musl: {}
 
-  packages/resolutions-rs/npm/linux-x64-musl: {}
+  packages/resolutions-rs/npm/linux-x64-gnu: {}
 
-  packages/resolutions-rs/npm/wasm32-wasi:
-    dependencies:
-      '@napi-rs/wasm-runtime':
-        specifier: ^1.1.4
-        version: 1.2.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+  packages/resolutions-rs/npm/linux-x64-musl: {}
 
   packages/resolutions-rs/npm/win32-arm64-msvc: {}
 
   packages/resolutions-rs/npm/win32-ia32-msvc: {}
+
+  packages/resolutions-rs/npm/win32-x64-msvc: {}
 
   packages/rollup:
     dependencies:
@@ -475,7 +473,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.6.2
-        version: 3.8.0(@emnapi/runtime@1.11.2)(@types/node@25.9.5)
+        version: 3.8.0(@emnapi/runtime@2.0.0-alpha.3)(@types/node@25.9.5)
 
   packages/runtime-rs/npm/darwin-arm64: {}
 
@@ -489,13 +487,15 @@ importers:
 
   packages/runtime-rs/npm/linux-arm64-musl: {}
 
-  packages/runtime-rs/npm/linux-x64-musl: {}
+  packages/runtime-rs/npm/linux-x64-gnu: {}
 
-  packages/runtime-rs/npm/wasm32-wasi: {}
+  packages/runtime-rs/npm/linux-x64-musl: {}
 
   packages/runtime-rs/npm/win32-arm64-msvc: {}
 
   packages/runtime-rs/npm/win32-ia32-msvc: {}
+
+  packages/runtime-rs/npm/win32-x64-msvc: {}
 
   packages/solc:
     dependencies:
@@ -523,7 +523,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.6.2
-        version: 3.8.0(@emnapi/runtime@1.11.2)(@types/node@25.9.5)
+        version: 3.8.0(@emnapi/runtime@2.0.0-alpha.3)(@types/node@25.9.5)
 
   packages/ts-plugin:
     dependencies:
@@ -679,8 +679,8 @@ importers:
         specifier: ^8.1.5
         version: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0)
       vocs:
-        specifier: 2.7.0
-        version: 2.7.0(@types/react@19.2.17)(@vue/compiler-sfc@3.5.40)(axios@1.18.1)(esbuild@0.28.1)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(rolldown@1.1.5)(rollup@4.62.3)(typescript@6.0.3)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(waku@1.0.0-beta.8(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24))
+        specifier: 2.7.2
+        version: 2.7.2(@types/react@19.2.17)(@vue/compiler-sfc@3.5.40)(axios@1.18.1)(esbuild@0.28.1)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(rolldown@1.1.5)(rollup@4.62.3)(typescript@6.0.3)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(waku@1.0.0-beta.8(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24))
       waku:
         specifier: 1.0.0-beta.8
         version: 1.0.0-beta.8(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0)
@@ -1011,6 +1011,9 @@ packages:
 
   '@emnapi/runtime@1.9.2':
     resolution: {integrity: sha512-3U4+MIWHImeyu1wnmVygh5WlgfYDtyf0k8AbLhMFxOipihf6nrWC4syIm/SwEeec0mNSafiiNnMJwbza/Is6Lw==}
+
+  '@emnapi/runtime@2.0.0-alpha.3':
+    resolution: {integrity: sha512-hFPAhMUjJD9BSyCANEISPOogeXC9Zo9ZQl7L6vKnaVsMkCtzznaW/naYypeyl0Gv5rYfWYsZbpixTMpjDJzQeA==}
 
   '@emnapi/wasi-threads@1.2.1':
     resolution: {integrity: sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==}
@@ -6221,8 +6224,8 @@ packages:
       jsdom:
         optional: true
 
-  vocs@2.7.0:
-    resolution: {integrity: sha512-SZvExPIaowjDosBh1b46joJYoxJh35YklHZivScknFMLjxQ9JNEc6s432fmm83HkmVrT7h+cDJo2W9/Tn319GA==}
+  vocs@2.7.2:
+    resolution: {integrity: sha512-Sppu2STAa37Aon2rR/oXAktzW8dTlPcvxNPdfb0PMGL1FRaJlXfYe1EgFLfQzqtorwWk98iCtedtRmuI9IzhZg==}
     hasBin: true
     peerDependencies:
       '@vocs/twoslash-rust': ^0.1.0
@@ -6992,6 +6995,7 @@ snapshots:
     dependencies:
       '@emnapi/wasi-threads': 1.2.2
       tslib: 2.8.1
+    optional: true
 
   '@emnapi/core@1.9.2':
     dependencies:
@@ -7007,8 +7011,14 @@ snapshots:
   '@emnapi/runtime@1.11.2':
     dependencies:
       tslib: 2.8.1
+    optional: true
 
   '@emnapi/runtime@1.9.2':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
+  '@emnapi/runtime@2.0.0-alpha.3':
     dependencies:
       tslib: 2.8.1
     optional: true
@@ -7021,6 +7031,7 @@ snapshots:
   '@emnapi/wasi-threads@1.2.2':
     dependencies:
       tslib: 2.8.1
+    optional: true
 
   '@esbuild/aix-ppc64@0.27.7':
     optional: true
@@ -7269,7 +7280,7 @@ snapshots:
   '@floating-ui/vue@1.1.9(vue@3.5.40(typescript@6.0.3))':
     dependencies:
       '@floating-ui/dom': 1.8.0
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.12
       vue-demi: 0.14.10(vue@3.5.40(typescript@6.0.3))
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -7644,6 +7655,38 @@ snapshots:
       - node-addon-api
       - supports-color
 
+  '@napi-rs/cli@3.8.0(@emnapi/runtime@2.0.0-alpha.3)(@types/node@25.9.5)':
+    dependencies:
+      '@inquirer/prompts': 8.5.2(@types/node@25.9.5)
+      '@napi-rs/cross-toolchain': 1.0.3
+      '@napi-rs/wasm-tools': 1.1.0
+      '@octokit/rest': 22.0.1
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      colorette: 2.0.20
+      emnapi: 2.0.0-alpha.3
+      es-toolkit: 1.50.0
+      js-yaml: 4.3.0
+      obug: 2.1.4
+      semver: 7.8.5
+      typanion: 3.14.0
+      typescript: 6.0.3
+    optionalDependencies:
+      '@emnapi/runtime': 2.0.0-alpha.3
+    transitivePeerDependencies:
+      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
+      - '@napi-rs/cross-toolchain-arm64-target-armv7'
+      - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-arm64-target-s390x'
+      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
+      - '@napi-rs/cross-toolchain-x64-target-aarch64'
+      - '@napi-rs/cross-toolchain-x64-target-armv7'
+      - '@napi-rs/cross-toolchain-x64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-x64-target-s390x'
+      - '@napi-rs/cross-toolchain-x64-target-x86_64'
+      - '@types/node'
+      - node-addon-api
+      - supports-color
+
   '@napi-rs/cross-toolchain@1.0.3':
     dependencies:
       '@napi-rs/lzma': 1.5.1
@@ -7810,6 +7853,7 @@ snapshots:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
       '@tybys/wasm-util': 0.10.3
+    optional: true
 
   '@napi-rs/wasm-runtime@1.2.0(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)':
     dependencies:
@@ -8788,6 +8832,7 @@ snapshots:
   '@tybys/wasm-util@0.10.3':
     dependencies:
       tslib: 2.8.1
+    optional: true
 
   '@types/chai@5.2.3':
     dependencies:
@@ -12829,7 +12874,7 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vocs@2.7.0(@types/react@19.2.17)(@vue/compiler-sfc@3.5.40)(axios@1.18.1)(esbuild@0.28.1)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(rolldown@1.1.5)(rollup@4.62.3)(typescript@6.0.3)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(waku@1.0.0-beta.8(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)):
+  vocs@2.7.2(@types/react@19.2.17)(@vue/compiler-sfc@3.5.40)(axios@1.18.1)(esbuild@0.28.1)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(rolldown@1.1.5)(rollup@4.62.3)(typescript@6.0.3)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(waku@1.0.0-beta.8(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react-server-dom-webpack@19.2.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)))(react@19.2.8)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))(webpack@5.109.2(esbuild@0.28.1)(postcss@8.5.24)):
     dependencies:
       '@base-ui/react': 1.6.0(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@codesandbox/sandpack-react': 2.20.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

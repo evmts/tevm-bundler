@@ -53,7 +53,7 @@ jobs:
   deploy:
     name: Deploy to Vercel
     # Deploys bundler.tevm.sh. Requires VERCEL_TOKEN, VERCEL_ORG_ID and
-    # VERCEL_PROJECT_ID repository secrets; skipped when they are not configured.
+    # VERCEL_PROJECT_ID secrets in the docs environment; skipped when they are not configured.
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
@@ -69,12 +69,14 @@ jobs:
         id: creds
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          if [ -n "$VERCEL_TOKEN" ]; then
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::VERCEL_TOKEN is not set — skipping deploy. Add VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID repository secrets to enable it."
+            echo "::notice::Vercel credentials are incomplete — skipping deploy. Add VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as docs environment secrets."
           fi
 
       - name: Install pnpm

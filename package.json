@@ -22,7 +22,7 @@
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"lint": "biome check .",
-		"release": "pnpm build && changeset publish",
+		"release": "pnpm build && pnpm test && changeset publish",
 		"test": "pnpm --recursive --if-present run test:run",
 		"typecheck": "pnpm build && pnpm --recursive --if-present run typecheck"
 	},

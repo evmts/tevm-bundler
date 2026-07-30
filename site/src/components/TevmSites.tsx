@@ -1,8 +1,5 @@
 const SITES = [
 	{ name: 'tevm', host: 'tevm.sh', href: 'https://tevm.sh' },
-	{ name: 'contract', host: 'contract.tevm.sh', href: 'https://contract.tevm.sh' },
-	{ name: 'utils', host: 'utils.tevm.sh', href: 'https://utils.tevm.sh' },
-	{ name: 'logger', host: 'logger.tevm.sh', href: 'https://logger.tevm.sh' },
 	{ name: 'test', host: 'test.tevm.sh', href: 'https://test.tevm.sh' },
 	{ name: 'ethers', host: 'ethers.tevm.sh', href: 'https://ethers.tevm.sh' },
 	{ name: 'mud', host: 'mud.tevm.sh', href: 'https://mud.tevm.sh' },
