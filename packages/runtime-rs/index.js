@@ -312,25 +312,6 @@ function requireNative() {
 
 nativeBinding = requireNative()
 
-if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
-	try {
-		nativeBinding = require('./tevm_runtime_rs.wasi.cjs')
-	} catch (err) {
-		if (process.env.NAPI_RS_FORCE_WASI) {
-			loadErrors.push(err)
-		}
-	}
-	if (!nativeBinding) {
-		try {
-			nativeBinding = require('@tevm/runtime-rs-wasm32-wasi')
-		} catch (err) {
-			if (process.env.NAPI_RS_FORCE_WASI) {
-				loadErrors.push(err)
-			}
-		}
-	}
-}
-
 if (!nativeBinding) {
 	if (loadErrors.length > 0) {
 		// TODO Link to documentation with potential fixes

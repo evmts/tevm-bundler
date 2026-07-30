@@ -1,4 +1,4 @@
-# @tevm/runtime-rs-wasm32-wasi
+# @tevm/resolutions-rs-linux-x64-gnu
 
 ## 1.0.0-rc.151
 

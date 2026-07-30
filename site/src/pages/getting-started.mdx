@@ -26,11 +26,11 @@ one. If your project already depends on `tevm`, that is enough — the generated
 code will import from `tevm/contract` instead.
 
 All packages in this repository are published under the `@tevm` scope and are
-versioned together. The current line is `1.0.0-rc.151`, so pin the release
-candidate explicitly if you want reproducible installs:
+versioned together. A lockfile gives applications reproducible installs; to
+inspect the currently published version before upgrading, ask npm:
 
 ```bash
-npm install --save-dev @tevm/vite-plugin@1.0.0-rc.151 @tevm/ts-plugin@1.0.0-rc.151
+npm view @tevm/vite-plugin version
 ```
 
 ## 2. Configure the build

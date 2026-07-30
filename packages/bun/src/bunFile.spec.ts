@@ -44,7 +44,7 @@ describe('bunFile', () => {
 
 		// Check for examples
 		expect(fileContent).toContain('example')
-		expect(fileContent).toContain("import { file } from '@tevm/bun'")
+		expect(fileContent).toContain("import { file } from '@tevm/bun-plugin'")
 	})
 
 	it('should export Bun file API', () => {
@@ -159,7 +159,7 @@ describe('bunFile', () => {
 		}
 
 		// Validate that the JSDoc refers to the correct import pattern
-		expect(fileContent).toContain("import { file } from '@tevm/bun'")
+		expect(fileContent).toContain("import { file } from '@tevm/bun-plugin'")
 
 		// Check that type definition references Bun's type system
 		expect(fileContent).toContain("@type {typeof import('bun').file}")

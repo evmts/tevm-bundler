@@ -11,31 +11,263 @@ permissions:
   pull-requests: write
   id-token: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  release:
+  verify:
+    name: Build and test release
+    if: github.repository == 'evmts/tevm-bundler'
     runs-on: ubuntu-latest
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    outputs:
+      publish-native: ${{ steps.release-state.outputs.publish-native }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
+
       - uses: dtolnay/rust-toolchain@1.96.1
-      - run: npm install --global npm@latest
+
       - run: pnpm install --frozen-lockfile
-      - name: Publishing is not configured
-        if: env.NPM_TOKEN == ''
-        run: echo "NPM_TOKEN is not configured; skipping the Changesets release step."
+      - run: pnpm build
+      - run: pnpm test
+
+      - name: Detect a version ready to publish
+        id: release-state
+        shell: bash
+        run: |
+          version="$(node --print "require('./packages/base-bundler/package.json').version")"
+          if npm view "@tevm/base-bundler@${version}" version >/dev/null 2>&1; then
+            echo "publish-native=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish-native=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  native:
+    name: Native ${{ matrix.package }} / ${{ matrix.settings.target }}
+    needs: verify
+    if: needs.verify.outputs.publish-native == 'true'
+    runs-on: ${{ matrix.settings.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - resolutions-rs
+          - runtime-rs
+        settings:
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            flags: ''
+          - host: macos-latest
+            target: x86_64-apple-darwin
+            flags: ''
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            flags: --use-napi-cross
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            flags: --cross-compile
+          - host: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            flags: --use-napi-cross
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            flags: ''
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            flags: --cross-compile
+          - host: windows-latest
+            target: aarch64-pc-windows-msvc
+            flags: ''
+          - host: windows-latest
+            target: i686-pc-windows-msvc
+            flags: ''
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            flags: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          targets: ${{ matrix.settings.target }}
+
+      - uses: mlugg/setup-zig@v2
+        if: contains(matrix.settings.target, 'musl')
+        with:
+          version: 0.14.1
+
+      - uses: taiki-e/install-action@v2
+        if: contains(matrix.settings.target, 'musl')
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tool: cargo-zigbuild
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build native binding
+        working-directory: packages/${{ matrix.package }}
+        shell: bash
+        run: pnpm exec napi build --platform --release --no-js --target "${{ matrix.settings.target }}" ${{ matrix.settings.flags }}
+
+      - name: Upload native binding
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.package }}-${{ matrix.settings.target }}
+          path: |
+            packages/${{ matrix.package }}/tevm_*.node
+            packages/${{ matrix.package }}/tevm_*.wasm
+          if-no-files-found: error
+          retention-days: 1
+
+  native-freebsd:
+    name: Native ${{ matrix.package }} / x86_64-unknown-freebsd
+    needs: verify
+    if: needs.verify.outputs.publish-native == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - resolutions-rs
+          - runtime-rs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build FreeBSD binding
+        uses: cross-platform-actions/action@v1.3.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RUSTUP_IO_THREADS: 1
+        with:
+          operating_system: freebsd
+          version: "15.0"
+          memory: 8G
+          cpu_count: 3
+          environment_variables: GITHUB_TOKEN RUSTUP_IO_THREADS
+          shell: bash
+          run: |
+            sudo pkg install -y -f curl node libnghttp2 npm cmake
+            sudo npm install --global pnpm@9.15.9
+            curl https://sh.rustup.rs -sSf --output rustup.sh
+            sh rustup.sh -y --profile minimal --default-toolchain 1.96.1
+            . "$HOME/.cargo/env"
+            pnpm install --frozen-lockfile
+            pnpm --dir "packages/${{ matrix.package }}" exec napi build --platform --release --no-js --target x86_64-unknown-freebsd
+
+      - name: Upload FreeBSD binding
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.package }}-x86_64-unknown-freebsd
+          path: packages/${{ matrix.package }}/tevm_*.node
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Version or publish
+    needs:
+      - verify
+      - native
+      - native-freebsd
+    if: >-
+      always() &&
+      needs.verify.result == 'success' &&
+      (needs.native.result == 'success' || needs.native.result == 'skipped') &&
+      (needs.native-freebsd.result == 'success' || needs.native-freebsd.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@1.96.1
+
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@latest
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download resolutions native bindings
+        if: needs.verify.outputs.publish-native == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-resolutions-rs-*
+          path: packages/resolutions-rs/artifacts
+          merge-multiple: true
+
+      - name: Download runtime native bindings
+        if: needs.verify.outputs.publish-native == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-runtime-rs-*
+          path: packages/runtime-rs/artifacts
+          merge-multiple: true
+
+      - name: Prepare native npm packages
+        if: needs.verify.outputs.publish-native == 'true'
+        shell: bash
+        run: |
+          pnpm --dir packages/resolutions-rs exec napi artifacts --build-output-dir artifacts
+          pnpm --dir packages/runtime-rs exec napi artifacts --build-output-dir artifacts
+          pnpm --dir packages/resolutions-rs exec napi pre-publish --tag-style npm
+          pnpm --dir packages/runtime-rs exec napi pre-publish --tag-style npm
+          for manifest in packages/resolutions-rs/npm/*/package.json packages/runtime-rs/npm/*/package.json; do
+            directory="$(dirname "$manifest")"
+            entry="$(node --print "require('./${manifest}').main")"
+            test -f "${directory}/${entry}"
+          done
+
+      - name: Configure npm publishing authentication
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ]; then
+            rm -f "${NPM_CONFIG_USERCONFIG}"
+          fi
+
+          if [ -n "${NODE_AUTH_TOKEN}" ]; then
+            printf '\n//registry.npmjs.org/:_authToken=%s\n' "${NODE_AUTH_TOKEN}" >> ~/.npmrc
+          else
+            echo "NODE_AUTH_TOKEN=" >> "$GITHUB_ENV"
+            echo "NPM_TOKEN=" >> "$GITHUB_ENV"
+          fi
+
+          {
+            echo "NPM_CONFIG_PROVENANCE=true"
+            echo "NPM_CONFIG_USERCONFIG="
+          } >> "$GITHUB_ENV"
+
       - uses: changesets/action@v1
-        if: env.NPM_TOKEN != ''
         with:
           version: pnpm changeset-version
           publish: pnpm release
@@ -43,5 +275,6 @@ jobs:
           commit: "chore: release packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ env.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
