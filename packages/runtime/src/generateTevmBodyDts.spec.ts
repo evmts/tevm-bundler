@@ -56,6 +56,17 @@ describe('generateDtsBody', () => {
 		},
 	} as const
 
+	it.each([false, true])('preserves anonymous events in the ABI type with includeBytecode=%s', (includeBytecode) => {
+		const abi = [{ type: 'event', name: 'Hidden', anonymous: true, inputs: [{ type: 'address', indexed: true }] }]
+		const result = runSync(generateDtsBody(createTestArtifacts({ HiddenEvents: { abi } }), includeBytecode))
+		expect(result).toContain(
+			`declare const _abiHiddenEvents: readonly ${JSON.stringify(abi, null, includeBytecode ? 2 : 0)};`,
+		)
+		expect(result).toMatch(
+			/export const HiddenEvents: Contract<\s*typeof _nameHiddenEvents,\s*typeof _abiHiddenEvents,/,
+		)
+	})
+
 	it('should generate correct body without bytecode', () => {
 		expect(runSync(generateDtsBody(artifacts, false))).toMatchInlineSnapshot(`
 			"
@@ -402,6 +413,7 @@ describe('generateDtsBody', () => {
 		expect(resultWithBytecode).toContain('* EmptyAbiContract Contract (with bytecode)')
 		expect(resultWithBytecode).toContain('* @notice A contract with no functions')
 		expect(resultWithBytecode).toContain('export const EmptyAbiContract: Contract<')
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: asserting generated TypeScript template literal type
 		expect(resultWithBytecode).toContain('`0x${string}`')
 
 		const resultWithoutBytecode = runSync(generateDtsBody(emptyAbiArtifact, false))

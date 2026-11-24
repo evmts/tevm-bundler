@@ -44,6 +44,7 @@
 	],
 	"scripts": {
 		"all": "pnpm i  && bun run build && bun run lint && bun run lint:check && bun run format:check && bun run format && bun run test:coverage && bun run generate:docs",
+		"bench": "vitest bench --run",
 		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",

@@ -44,6 +44,12 @@ describe(loadFoundryConfig.name, () => {
 		})
 	})
 
+	it('should keep a `__proto__` remapping prefix as an own key', () => {
+		mockExecFileSync.mockReturnValueOnce(Buffer.from(JSON.stringify({ remappings: ['__proto__=lib/proto/'] })))
+		const res = runSync(loadFoundryConfig(true, foundryFixture))
+		expect(Object.entries(res.remappings ?? {})).toEqual([['__proto__', join(foundryFixture, 'lib/proto/')]])
+	})
+
 	it('should return an empty config if no foundryProject is passed in', () => {
 		expect(runSync(loadFoundryConfig(undefined, foundryFixture))).toEqual({})
 		expect(runSync(loadFoundryConfig(false, join(__dirname, '..', 'fixtures', 'withFoundry')))).toEqual({})
@@ -82,5 +88,29 @@ not-a-json
 		expect(() => runSync(loadFoundryConfig('forge', foundryFixture))).toThrowErrorMatchingInlineSnapshot(
 			'[(FiberFailure) Error: Invalid remappings: not-fromatted-as-expected]',
 		)
+	})
+})
+
+describe('loadFoundryConfig shared remapping parsing', () => {
+	beforeEach(() => {
+		mockExecFileSync.mockReset()
+	})
+
+	it('parses forge remappings exactly like remappings.txt', () => {
+		mockExecFileSync.mockReturnValueOnce(
+			Buffer.from(JSON.stringify({ remappings: [' @a/ = lib/a=b/ ', 'constructor=lib/c/', 'prototype=lib/t/'] })),
+		)
+		const res = runSync(loadFoundryConfig(true, '/project'))
+		expect(Object.entries(res.remappings ?? {})).toEqual([
+			['@a/', '/project/lib/a=b/'],
+			['constructor', '/project/lib/c/'],
+			['prototype', '/project/lib/t/'],
+		])
+		expect(Object.getPrototypeOf(res.remappings)).toBe(Object.prototype)
+	})
+
+	it('rejects a non-array remappings value', () => {
+		mockExecFileSync.mockReturnValueOnce(Buffer.from(JSON.stringify({ remappings: 'a=b' })))
+		expect(() => runSync(loadFoundryConfig(true, '/project'))).toThrow('Invalid remappings: a=b')
 	})
 })

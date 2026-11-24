@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import * as path from 'node:path'
 import { catchTag, die, fail, flatMap, logDebug, succeed, tap, try as tryEffect } from 'effect/Effect'
 import { validateUserConfig } from '../config/validateUserConfig.js'
+import { parseRemappings } from '../remappings/parseRemappings.js'
 
 /**
  * TypeError thrown when the user provided remappings is not properly formatted
@@ -46,43 +47,19 @@ export const loadRemappings = (configFilePath) => {
 			return succeed('')
 		}),
 		flatMap((remappings) => {
-			if (remappings.trim() === '') {
+			// remappings.txt may use LF, CRLF or lone CR line endings
+			const parsed = parseRemappings(remappings.split(/\r\n|\r|\n/), configFilePath)
+			if ('invalid' in parsed) {
+				return fail(
+					new InvalidRemappingsError(
+						`Invalid remapping ${parsed.invalid}. Remapping in remapping.txt should look like @solmate-utils/=lib/solmate/src/utils/`,
+					),
+				)
+			}
+			if (Object.keys(parsed.remappings).length === 0) {
 				return succeed({})
 			}
-			const remappingEntries = remappings.trim().split('\n')
-
-			// validate remappings
-			for (const remapping of remappingEntries) {
-				if (remapping.trim() === '') {
-					continue
-				}
-				const remappingArr = remapping.split('=')
-				if (remappingArr.length !== 2) {
-					return fail(
-						new InvalidRemappingsError(
-							`Invalid remapping ${remapping}. Remapping in remapping.txt should look like @solmate-utils/=lib/solmate/src/utils/`,
-						),
-					)
-				}
-			}
-
-			// Turn remappings into a tevm config shape
-			/**
-			 * @type {import('../types.js').CompilerConfig}
-			 */
-			const config = {
-				remappings: Object.fromEntries(
-					remappingEntries.map((remapping) => {
-						const [from, to] = remapping.trim().split('=')
-						// TODO this line of code won't work on windows
-						return /** @type {[string, string]}*/ ([
-							from,
-							`${configFilePath.endsWith('/') ? configFilePath : `${configFilePath}/`}${to?.startsWith('/') ? to.slice(1) : to}`,
-						])
-					}),
-				),
-			}
-			return succeed(config)
+			return succeed(/** @type {import('../types.js').CompilerConfig} */ ({ remappings: parsed.remappings }))
 		}),
 		flatMap((cfg) => validateUserConfig(() => /** @type {import('../types.js').CompilerConfig}*/ (cfg))),
 		// it can't thrw. Could clean this up via making validateUserConfig take a config instead of a factory

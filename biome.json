@@ -19,6 +19,7 @@
 			"!**/.nx",
 			"!**/.tevm",
 			"!**/tmp",
+			"!**/artifacts",
 			"!**/out-tsc",
 			"!**/cache",
 			"!**/.zig-cache",

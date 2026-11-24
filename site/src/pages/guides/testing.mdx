@@ -1,0 +1,99 @@
+---
+title: Testing & benchmarks
+description: Run the TEVM Bundler unit, end-to-end, fuzz, and benchmark suites.
+---
+
+# Testing & benchmarks
+
+This page is for contributors to the
+[`evmts/tevm-bundler`](https://github.com/evmts/tevm-bundler) workspace. It
+lists the commands CI runs and the ones to use while debugging.
+
+## Commands
+
+Run every command from the repository root.
+
+| Command | What it runs |
+| --- | --- |
+| `pnpm lint` | `biome check .` |
+| `pnpm typecheck` | Builds every package, then runs `tsc --noEmit` and `cargo check` |
+| `pnpm build` | `tsup` and `tsc` for the JavaScript packages, `cargo build --release` for the Rust crates |
+| `pnpm test` | Every unit, end-to-end, and fuzz spec, plus `cargo test` |
+| `pnpm test:fuzz` | Only the property fuzz suites |
+| `pnpm bench` | `vitest bench --run` in every package |
+
+CI runs `lint`, `typecheck`, `build`, and `test` on every pull request and on
+every push to `main`. `pnpm test` includes the fuzz suites, so a fuzz failure
+fails CI.
+
+To run one package, use a filter:
+
+```sh
+pnpm --filter @tevm/compiler test:run
+pnpm --filter @tevm/base-bundler test:fuzz
+pnpm --filter @tevm/resolutions bench
+```
+
+## Fuzz suites
+
+The JavaScript fuzz suites use a seeded generator, so every run is
+deterministic. A failure prints the seed and the counterexample:
+
+```txt
+Property "reachable graph" failed on run 25 (FUZZ_SEED=7).
+Counterexample: {"files":[...]}
+```
+
+Two environment variables control a run:
+
+| Variable | Effect |
+| --- | --- |
+| `FUZZ_SEED` | Seed for the generator. Set it to the value in a failure message to reproduce the failure. |
+| `FUZZ_RUNS` | Number of generated cases per property. Raise it to search more of the input space. |
+
+```sh
+FUZZ_SEED=7 FUZZ_RUNS=1000 pnpm --filter @tevm/compiler test:fuzz
+```
+
+| Package | Spec | Fuzz target |
+| --- | --- | --- |
+| `@tevm/config` | `src/remappings.fuzz.spec.ts` | `remappings.txt` and Foundry remapping parsing |
+| `@tevm/resolutions` | `src/resolutions.fuzz.spec.ts` | Import graphs, cycles, and remapping resolution |
+| `@tevm/compiler` | `src/compiler.fuzz.spec.ts` | Random import DAGs with inheritance, compiled by the real `solc` |
+| `@tevm/runtime` | `src/codegen.fuzz.spec.ts` | Generated code for arbitrary ABIs and contract names |
+| `@tevm/base-bundler` | `src/bundler.fuzz.spec.ts` | Sync, async, and cached resolution for every module format |
+
+The Rust crates (`resolutions-rs`, `runtime-rs`, `solc-rs`) use
+[`proptest`](https://docs.rs/proptest). `cargo test fuzz_` runs only those
+suites. `proptest` saves failing inputs in each crate's
+`proptest-regressions/` directory; commit those files so the case stays in the
+suite.
+
+## End-to-end test
+
+`packages/unplugin/src/e2e.spec.ts` mocks only `process.cwd()`. It writes a
+project to disk with a `tsconfig.json`, a `remappings.txt`, and Solidity files
+that use relative and remapped imports. It then runs the real plugin hooks and
+checks that:
+
+- The generated ES module imports and runs against the real `@tevm/contract`.
+- `.s.sol` files include bytecode and plain `.sol` files do not.
+- Every file in the import graph is registered as a watch file.
+- A second build reads the cache on disk and does not call `solc`.
+- A Solidity compile error fails the build and reports the `solc` diagnostic.
+
+`packages/vite/src/vitePluginTevm.spec.ts` covers a real `vite build`.
+
+## Benchmarks
+
+Each package has a `bench/` directory with a `vitest bench` file.
+`pnpm bench` runs them all and prints operations per second for each case.
+The `@tevm/bun-plugin` benchmark runs under the Bun runtime, so `pnpm bench`
+needs `bun` on the `PATH`. Benchmarks are not a CI gate; run them before and after a performance change
+and compare the output.
+
+## Rust toolchain and disk space
+
+`rust-toolchain.toml` pins the Rust version. Each crate builds into its own
+`target/` directory, which takes 1 to 2 GB. Run `cargo clean` inside a crate to
+reclaim the space.

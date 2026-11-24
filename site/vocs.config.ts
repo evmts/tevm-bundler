@@ -57,6 +57,7 @@ export default defineConfig({
 				{ text: 'Caching', link: '/guides/caching' },
 				{ text: 'Building a custom integration', link: '/guides/custom-integration' },
 				{ text: 'Troubleshooting', link: '/guides/troubleshooting' },
+				{ text: 'Testing & benchmarks', link: '/guides/testing' },
 			],
 		},
 		{

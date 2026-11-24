@@ -9,7 +9,10 @@ import { flatMap, logDebug, promise, tap } from 'effect/Effect'
  * @example
  * ```typescript
  * import { fileExists } from '@tevm/effect'
- * await fileExists('./someFile.txt')
+ * import { Effect } from 'effect'
+ *
+ * const exists = await Effect.runPromise(fileExists('./someFile.txt'))
+ * console.log(exists)
  * ```
  * @internal
  */

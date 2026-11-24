@@ -8,10 +8,14 @@ import { all, logError } from 'effect/Effect'
  * @example
  * ```typescript
  * import { logAllErrors } from '@tevm/effect'
+ * import { Effect } from 'effect'
  *
- * someEffect.pipe(
- *   tapError(logAllErrors)
+ * const program = Effect.fail(new Error('Unable to load configuration')).pipe(
+ *   Effect.tapError(logAllErrors)
  * )
+ * const result = await Effect.runPromiseExit(program)
+ * console.log(result._tag) // 'Failure'
+ * ```
  */
 export const logAllErrors = (e) => {
 	const errors = [e]

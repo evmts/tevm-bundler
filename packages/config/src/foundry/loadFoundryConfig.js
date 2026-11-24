@@ -1,7 +1,7 @@
 // TODO would be nice to break this up into composable effects
 import { execFileSync } from 'node:child_process'
-import * as path from 'node:path'
 import { fail, logDebug, succeed, tap } from 'effect/Effect'
+import { parseRemappings } from '../remappings/parseRemappings.js'
 
 /**
  * Error thrown if foundry is not found in path while foundryProject is set in config
@@ -100,26 +100,19 @@ export const loadFoundryConfig = (foundryProject, configFilePath) => {
 		return fail(new FoundryConfigError(forgeCommand, { cause }))
 	}
 
-	/**
-	 * @type {Record<string, string>}
-	 * @internal
-	 */
-	const remappings = {}
-	if (forgeConfig.remappings) {
-		for (const remap of forgeConfig.remappings) {
-			const parts = remap.split('=')
-			if (parts.length !== 2) {
-				return fail(new InvalidRemappingsError(remap))
-			}
-			const [key, value] = parts
-			remappings[key.trim()] = path.join(configFilePath, value.trim())
-		}
+	const remappings = forgeConfig.remappings ?? []
+	if (!Array.isArray(remappings)) {
+		return fail(new InvalidRemappingsError(String(remappings)))
+	}
+	const parsed = parseRemappings(remappings, configFilePath)
+	if ('invalid' in parsed) {
+		return fail(new InvalidRemappingsError(parsed.invalid))
 	}
 
 	return tap(
 		succeed({
 			libs: forgeConfig?.libs,
-			remappings: remappings,
+			remappings: parsed.remappings,
 		}),
 		(config) => {
 			return logDebug(

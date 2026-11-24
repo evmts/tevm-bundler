@@ -1,5 +1,6 @@
 import { formatAbi } from 'abitype'
 import { succeed } from 'effect/Effect'
+import { planContractBindings } from './planContractBindings.js'
 
 /** @param {string | null | undefined} value */
 const escapeJSDoc = (value) =>
@@ -40,15 +41,18 @@ const escapeJSDoc = (value) =>
  * @internal This function is primarily used by generateTevmBody
  */
 export const generateDtsBody = (artifacts, includeBytecode) => {
+	const { exportsArtifacts, contracts } = planContractBindings(Object.keys(artifacts), ['_name', '_abi'])
 	return succeed(
 		`
 			${Object.entries(artifacts)
-				.flatMap(([contractName, { abi, userdoc = {}, evm }]) => {
-					// Create contract metadata
-					const contract = {
-						name: contractName,
-						humanReadableAbi: formatAbi(abi),
-					}
+				.flatMap(([contractName, { abi, userdoc = {}, evm }], i) => {
+					const { binding, aliased, locals } = /** @type {import('./planContractBindings.js').ContractBindings} */ (
+						contracts[i]
+					)
+					const nameType = locals['_name']
+					const abiType = locals['_abi']
+					// Human-readable signatures omit the anonymous flag, just as in the runtime generator.
+					const abiLiteral = abi.some((item) => item.type === 'event' && item.anonymous) ? abi : formatAbi(abi)
 
 					// Generate JSDoc from NatSpec comments
 					const natspec = Object.entries(userdoc.methods ?? {}).map(
@@ -60,17 +64,24 @@ export const generateDtsBody = (artifacts, includeBytecode) => {
 						natspec.unshift(` * @notice ${escapeJSDoc(userdoc.notice)}`)
 					}
 
+					// Reserved words such as `class` are valid Solidity contract names but cannot be
+					// declared with `export const`. Declare them under an internal name and alias the export.
+					const declaration = aliased ? `declare const ${binding}` : `export const ${contractName}`
+					const aliasExport = aliased ? `export { ${binding} as ${contractName} };` : ''
+
 					// Generate type declaration for contracts with bytecode
 					if (includeBytecode) {
+						// biome-ignore lint/suspicious/noTemplateCurlyInString: generates TypeScript template literal type
 						const bytecodeType = evm?.bytecode?.object && evm.bytecode.object !== '' ? '`0x${string}`' : 'undefined'
 						const deployedBytecodeType =
+							// biome-ignore lint/suspicious/noTemplateCurlyInString: generates TypeScript template literal type
 							evm?.deployedBytecode?.object && evm.deployedBytecode.object !== '' ? '`0x${string}`' : 'undefined'
 						const bytecodeLabel =
 							bytecodeType === 'undefined' && deployedBytecodeType === 'undefined' ? 'no bytecode' : 'with bytecode'
 						return [
 							// Define constants for name and ABI with const assertions for type safety
-							`declare const _name${contractName}: ${JSON.stringify(contractName, null, 2)};`,
-							`declare const _abi${contractName}: readonly ${JSON.stringify(contract.humanReadableAbi, null, 2)};`,
+							`declare const ${nameType}: ${JSON.stringify(contractName, null, 2)};`,
+							`declare const ${abiType}: readonly ${JSON.stringify(abiLiteral, null, 2)};`,
 
 							// JSDoc comments for the contract
 							'/**',
@@ -80,22 +91,23 @@ export const generateDtsBody = (artifacts, includeBytecode) => {
 							' */',
 
 							// Type declaration for the contract
-							`export const ${contractName}: Contract<`,
-							`  typeof _name${contractName},`, // Contract name
-							`  typeof _abi${contractName},`, // ABI
+							`${declaration}: Contract<`,
+							`  typeof ${nameType},`, // Contract name
+							`  typeof ${abiType},`, // ABI
 							'  undefined,', // Address placeholder
 							`  ${bytecodeType},`, // Bytecode
 							`  ${deployedBytecodeType},`, // Deployed bytecode
 							'  undefined', // Additional data - removed trailing comma
 							'>;',
+							aliasExport,
 						].filter(Boolean)
 					}
 
 					// Generate type declaration for interface-only contracts (no bytecode)
 					return [
 						// Define constants for ABI and name with const assertions
-						`declare const _abi${contractName}: readonly ${JSON.stringify(contract.humanReadableAbi)};`,
-						`declare const _name${contractName}: ${JSON.stringify(contractName)};`,
+						`declare const ${abiType}: readonly ${JSON.stringify(abiLiteral)};`,
+						`declare const ${nameType}: ${JSON.stringify(contractName)};`,
 
 						// JSDoc comments for the contract
 						'/**',
@@ -106,12 +118,11 @@ export const generateDtsBody = (artifacts, includeBytecode) => {
 						' */',
 
 						// Type declaration for the contract (without bytecode)
-						`export const ${contractName}: Contract<typeof _name${contractName}, typeof _abi${contractName}, undefined, undefined, undefined, undefined>;`,
+						`${declaration}: Contract<typeof ${nameType}, typeof ${abiType}, undefined, undefined, undefined, undefined>;`,
+						aliasExport,
 					].filter(Boolean)
 				})
 				.join('\n')}
-// solc artifacts of compilation
-export declare const artifacts: ${JSON.stringify(artifacts, null, 2)};
-`,
+${exportsArtifacts ? `// solc artifacts of compilation\nexport declare const artifacts: ${JSON.stringify(artifacts, null, 2)};\n` : ''}`,
 	)
 }

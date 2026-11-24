@@ -28,13 +28,14 @@
 	],
 	"main": "./dist/client.js",
 	"scripts": {
+		"bench": "vitest bench --run",
 		"build": "node scripts/build.js --minify",
-		"watch": "npm run build -- --watch",
 		"pack": "npm run build && vsce package --pre-release",
 		"release": "npm run build && vsce publish --pre-release",
 		"test:coverage": "vitest run --coverage",
+		"test:run": "vitest run",
 		"typecheck": "tsc --noEmit",
-		"test:run": "vitest run"
+		"watch": "npm run build -- --watch"
 	},
 	"devDependencies": {
 		"@tevm/lsp": "workspace:^",

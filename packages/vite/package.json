@@ -46,7 +46,7 @@
 		"//test": "vitest",
 		"//test:run": "vitest run",
 		"//test:ui": "vitest --ui",
-		"test:coverage": "vitest run --coverage",
+		"bench": "vitest bench --run",
 		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",
@@ -58,8 +58,9 @@
 		"lint:check": "biome check . --verbose",
 		"lint:deps": "bunx depcheck",
 		"lint:package": "bunx publint --strict && attw --pack",
-		"typecheck": "tsc --noEmit",
-		"test:run": "vitest run"
+		"test:coverage": "vitest run --coverage",
+		"test:run": "vitest run",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@tevm/unplugin": "workspace:^"

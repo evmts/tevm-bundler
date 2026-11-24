@@ -28,10 +28,11 @@
 		"tevm-lsp": "./bin/tevm-lsp.cjs"
 	},
 	"scripts": {
-		"test:coverage": "vitest run --coverage",
+		"bench": "vitest bench --run",
 		"build": "tsc",
-		"typecheck": "tsc --noEmit",
-		"test:run": "vitest run"
+		"test:coverage": "vitest run --coverage",
+		"test:run": "vitest run",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@tevm/base-bundler": "workspace:^",

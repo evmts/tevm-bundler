@@ -46,6 +46,7 @@
 	],
 	"scripts": {
 		"all": "bun run lint && bun run format && bun run build:dist && bun run build:types && bun run dev:run && bun run test:run && bun run generate:docs",
+		"bench": "vitest bench --run",
 		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",
@@ -62,6 +63,7 @@
 		"lint:package": "bunx publint --strict && attw --pack",
 		"test": "vitest --coverage",
 		"test:coverage": "vitest run --coverage",
+		"test:fuzz": "vitest run src/remappings.fuzz.spec.ts",
 		"test:run": "vitest run",
 		"test:ui": "vitest --ui",
 		"typecheck": "tsc --noEmit"

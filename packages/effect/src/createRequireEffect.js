@@ -40,8 +40,11 @@ export class RequireError extends Error {
  * @example
  * ```typescript
  * import { createRequireEffect } from '@tevm/effect'
- * const requireEffect = createRequireEffect(import.meta.url)
- * const solcEffect = requireEffect('solc')
+ * import { Effect } from 'effect'
+ *
+ * const requireEffect = await Effect.runPromise(createRequireEffect(import.meta.url))
+ * const path = await Effect.runPromise(requireEffect('node:path'))
+ * console.log(path.basename('/tmp/example.txt')) // 'example.txt'
  * ```
  * @see https://nodejs.org/api/modules.html#modules_module_createrequire_filename
  * @internal

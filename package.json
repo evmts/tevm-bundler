@@ -13,6 +13,7 @@
 		"provenance": true
 	},
 	"scripts": {
+		"bench": "pnpm --recursive --if-present run bench",
 		"build": "pnpm --recursive --if-present run build",
 		"changeset": "changeset",
 		"changeset-version": "changeset version && pnpm install --lockfile-only",
@@ -24,6 +25,7 @@
 		"lint": "biome check .",
 		"release": "pnpm build && pnpm test && changeset publish",
 		"test": "pnpm --recursive --if-present run test:run",
+		"test:fuzz": "pnpm --recursive --if-present run test:fuzz",
 		"typecheck": "pnpm build && pnpm --recursive --if-present run typecheck"
 	},
 	"devDependencies": {

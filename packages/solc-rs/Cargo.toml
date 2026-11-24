@@ -5,24 +5,27 @@ edition = '2021'
 description = 'A typesafe Rust wrapper for the Solidity compiler (solc)'
 authors = ["TEVM Contributors"]
 license = "MIT"
-repository = "https://github.com/evmts/tevm-monorepo"
+repository = "https://github.com/evmts/tevm-bundler"
 readme = "README.md"
 keywords = ["solidity", "compiler", "ethereum", "solc", "tevm"]
 
 [dependencies]
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
-tempfile = "3.19.1"
-thiserror = "2.0.12"
-hex = "0.4.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
 
 # NAPI bindings
-napi = { version = "2.16.0", default-features = false, features = ["napi4", "tokio_rt", "serde-json", "compat-mode", "async", "napi8"] }
-napi-derive = "2.16.0"
-libc = "0.2.172"
+napi = { version = "3.16.2", default-features = false, features = ["napi8", "tokio_rt", "serde-json", "async"] }
+napi-derive = "3.7.1"
 
 [build-dependencies]
-napi-build = "2.0.1"
+napi-build = "2.6.0"
+
+[dev-dependencies]
+hex = "0.4.3"
+# Standalone Rust test and example binaries run outside a Node host.
+napi = { version = "3.16.2", default-features = false, features = ["dyn-symbols"] }
+proptest = "1.12"
 
 [lib]
 crate-type = [

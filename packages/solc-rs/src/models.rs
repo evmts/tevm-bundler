@@ -46,22 +46,34 @@ pub struct SolcYulDetails {
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SolcOptimizerDetails {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub peephole: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub inliner: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub jumpdest_remover: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub order_literals: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deduplicate: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cse: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub constant_optimizer: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub yul: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub yul_details: Option<SolcYulDetails>,
 }
 
 // Optimizer configuration
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SolcOptimizer {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
-    pub runs: u32,
+    /// Omit to use the compiler's default optimizer run count.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runs: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<SolcOptimizerDetails>,
 }
@@ -115,6 +127,7 @@ pub struct SolcDebugSettings {
 #[serde(rename_all = "camelCase")]
 pub struct SolcMetadataSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "appendCBOR", alias = "appendCbor")]
     pub append_cbor: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_literal_content: Option<bool>,
@@ -181,16 +194,18 @@ pub struct SolcErrorEntry {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SolcSourceLocation {
     pub file: String,
-    pub start: u32,
-    pub end: u32,
+    /// Byte offset, or -1 for a diagnostic covering the whole file.
+    pub start: i64,
+    pub end: i64,
 }
 
 // Secondary source location in solc output
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SolcSecondarySourceLocation {
     pub file: String,
-    pub start: u32,
-    pub end: u32,
+    /// Byte offset, or -1 for a diagnostic covering the whole file.
+    pub start: i64,
+    pub end: i64,
     pub message: String,
 }
 
@@ -228,7 +243,8 @@ pub struct SolcContractOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SolcStorageLayout {
     pub storage: Vec<SolcStorageLayoutItem>,
-    pub types: HashMap<String, serde_json::Value>,
+    /// solc emits null for contracts with no storage variables.
+    pub types: Option<HashMap<String, serde_json::Value>>,
 }
 
 // Storage layout item in solc output

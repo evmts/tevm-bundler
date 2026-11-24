@@ -46,6 +46,8 @@
 		"types"
 	],
 	"scripts": {
+		"// lint:package": "bunx publint --strict && attw --pack",
+		"bench": "vitest bench --run",
 		"build": "pnpm run build:dist && pnpm run build:types",
 		"build:dist": "tsup",
 		"build:types": "tsup --dts-only && tsc --emitDeclarationOnly --declaration",
@@ -53,15 +55,14 @@
 		"dev": "TSS_DEBUG_BRK=9559 code ../../examples/forge-foundry",
 		"format": "biome format . --write",
 		"format:check": "biome format .",
-		"lint:deps": "bunx depcheck",
-		"// lint:package": "bunx publint --strict && attw --pack",
 		"generate:docs": "typedoc",
 		"lint": "biome check . --write --unsafe",
 		"lint:check": "biome check . --verbose",
-		"typecheck": "tsc --noEmit",
+		"lint:deps": "bunx depcheck",
 		"test": "vitest --coverage",
 		"test:coverage": "vitest run --coverage",
-		"test:run": "vitest run"
+		"test:run": "vitest run",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@tevm/base-bundler": "workspace:^",

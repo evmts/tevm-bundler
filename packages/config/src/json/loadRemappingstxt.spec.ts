@@ -38,11 +38,13 @@ describe('loadRemappings', () => {
 
 		const result = await runPromise(loadRemappings('/path/to/config'))
 
-		// Check that we have both remappings
-		expect(result).toHaveProperty('remappings.@openzeppelin/')
-		expect(result).toHaveProperty('remappings.@solmate/')
-		expect(result.remappings?.['@openzeppelin/']).toContain('/path/to/config/lib/openzeppelin/')
-		expect(result.remappings?.['@solmate/']).toContain('/path/to/config/lib/solmate/src/')
+		// Blank lines must not introduce empty-string keys or undefined values
+		expect(result).toEqual({
+			remappings: {
+				'@openzeppelin/': '/path/to/config/lib/openzeppelin/',
+				'@solmate/': '/path/to/config/lib/solmate/src/',
+			},
+		})
 	})
 
 	it('should throw InvalidRemappingsError for invalid remapping format', async () => {
@@ -69,18 +71,15 @@ describe('loadRemappings', () => {
 		const result = await runPromise(loadRemappings('C:\\path\\to\\config'))
 
 		expect(result).toHaveProperty('remappings.@openzeppelin/')
-		// Windows path handling should be correctly adjusted in the implementation
-		expect(result.remappings?.['@openzeppelin/']).toBeDefined()
+		expect(result.remappings?.['@openzeppelin/']).toBe('C:\\path\\to\\config\\lib\\windows\\path\\')
 	})
 
-	it('should handle remappings with paths starting with slash', async () => {
+	it('preserves absolute remapping targets', async () => {
 		vi.mocked(fs.readFileSync).mockReturnValueOnce('@openzeppelin/=/absolute/path/lib/openzeppelin/')
 
 		const result = await runPromise(loadRemappings('/path/to/config'))
 
-		expect(result).toHaveProperty('remappings.@openzeppelin/')
-		// Should correctly handle paths starting with slash by removing the leading slash
-		expect(result.remappings?.['@openzeppelin/']).toEqual('/path/to/config/absolute/path/lib/openzeppelin/')
+		expect(result.remappings?.['@openzeppelin/']).toBe('/absolute/path/lib/openzeppelin/')
 	})
 
 	it('should handle config path with trailing slash', async () => {
@@ -91,5 +90,17 @@ describe('loadRemappings', () => {
 		expect(result).toHaveProperty('remappings.@openzeppelin/')
 		// Should not add double slash when config path already has trailing slash
 		expect(result.remappings?.['@openzeppelin/']).toEqual('/path/to/config/lib/openzeppelin/')
+	})
+
+	// Regression: found by the Lean differential fuzz in specs/lean/host
+	it('should keep a `__proto__` prefix instead of silently dropping the remapping', async () => {
+		vi.mocked(fs.readFileSync).mockReturnValueOnce('__proto__=lib/proto/\n@solmate/=lib/solmate/src/')
+
+		const result = await runPromise(loadRemappings('/path/to/config'))
+
+		expect(Object.entries(result.remappings ?? {})).toEqual([
+			['__proto__', '/path/to/config/lib/proto/'],
+			['@solmate/', '/path/to/config/lib/solmate/src/'],
+		])
 	})
 })

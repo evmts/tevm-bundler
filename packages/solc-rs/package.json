@@ -9,8 +9,9 @@
 		"build:debug": "cargo build",
 		"build:release": "cargo build --release",
 		"test": "cargo test",
-		"typecheck": "cargo check",
-		"test:run": "cargo test"
+		"test:fuzz": "cargo test fuzz_",
+		"test:run": "cargo test",
+		"typecheck": "cargo check"
 	},
 	"devDependencies": {
 		"@napi-rs/cli": "^3.6.2"

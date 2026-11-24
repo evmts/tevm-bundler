@@ -196,7 +196,8 @@ contract TestContract {}`,
 		const [mjsResult, dtsResult] = await Promise.all([mjsPromise, dtsPromise])
 
 		// Verify distinct output formats
-		expect(mjsResult.code).toContain('export const Contract')
+		// `Contract` collides with the type imported by declaration output, so it is exported through an alias
+		expect(mjsResult.code).toContain('export { _tevm_Contract as Contract }')
 		expect(dtsResult.code).toContain('Contract<')
 	})
 
