@@ -1,5 +1,7 @@
 # @tevm/resolutions-rs-darwin-x64
 
+## 1.0.0
+
 ## 1.0.0-rc.151
 
 ### Patch Changes

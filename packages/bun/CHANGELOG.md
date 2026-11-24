@@ -1,5 +1,15 @@
 # @tevm/bun-plugin
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`59c0a3d`](https://github.com/evmts/tevm-bundler/commit/59c0a3d71d7dd9b44d5daf289c6dfcdc6640077e)]:
+  - @tevm/base-bundler@1.0.0
+  - @tevm/bundler-cache@1.0.0
+  - @tevm/config@1.0.0
+  - @tevm/solc@1.0.0
+
 ## 1.0.0-rc.151
 
 ### Patch Changes
@@ -242,6 +252,7 @@
 ### Patch Changes
 
 - [#1186](https://github.com/evmts/tevm-monorepo/pull/1186) [`7765446`](https://github.com/evmts/tevm-monorepo/commit/7765446beec1391a00f3d3dd8d015d5205e0371a) Thanks [@roninjin10](https://github.com/roninjin10)! - Moved files around to colocate code better. Some packages are disappearing
+
   - Tevm/Zod is now part of Tevm/actions
   - Tevm/actions-types moved to Tevm/actions
   - Tevm/procedures-types moved to Tevm/procedures
@@ -380,6 +391,7 @@
 ### Patch Changes
 
 - [#862](https://github.com/evmts/tevm-monorepo/pull/862) [`f217fa4dc2f730cc109940ef36872229ae9f26d3`](https://github.com/evmts/tevm-monorepo/commit/f217fa4dc2f730cc109940ef36872229ae9f26d3) Thanks [@roninjin10](https://github.com/roninjin10)! - - Renamed MemoryTevm MemoryClient
+
   - Renamed TevmClient HttpClient
   - Replaced @tevm/actions-types package with @tevm/actions-types, @tevm/client-types, and @tevm/procedures-types packages
   - Moved errors to @tevm/errors
@@ -630,7 +642,7 @@
 
   publicClient
     .readContract(
-      ExampleContract.read({ chainId: optimismGoerli.id }).balanceOf(owner),
+      ExampleContract.read({ chainId: optimismGoerli.id }).balanceOf(owner)
     )
     .then(console.log);
   ```

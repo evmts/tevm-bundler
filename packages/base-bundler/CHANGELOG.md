@@ -1,5 +1,18 @@
 # @tevm/base
 
+## 1.0.0
+
+### Patch Changes
+
+- [#1](https://github.com/evmts/tevm-bundler/pull/1) [`59c0a3d`](https://github.com/evmts/tevm-bundler/commit/59c0a3d71d7dd9b44d5daf289c6dfcdc6640077e) Thanks [@roninjin10](https://github.com/roninjin10)! - Prepare the extracted bundler workspace for independent, provenance-backed releases, including complete native platform packages. Remove the empty WASI package stubs because their Rust dependency graph cannot compile for WASI and the published release-candidate tarballs contain no WebAssembly binary.
+
+- Updated dependencies []:
+  - @tevm/bundler-cache@1.0.0
+  - @tevm/compiler@1.0.0
+  - @tevm/config@1.0.0
+  - @tevm/runtime@1.0.0
+  - @tevm/solc@1.0.0
+
 ## 1.0.0-rc.151
 
 ### Patch Changes
@@ -298,6 +311,7 @@
 ### Patch Changes
 
 - [#1186](https://github.com/evmts/tevm-monorepo/pull/1186) [`7765446`](https://github.com/evmts/tevm-monorepo/commit/7765446beec1391a00f3d3dd8d015d5205e0371a) Thanks [@roninjin10](https://github.com/roninjin10)! - Moved files around to colocate code better. Some packages are disappearing
+
   - Tevm/Zod is now part of Tevm/actions
   - Tevm/actions-types moved to Tevm/actions
   - Tevm/procedures-types moved to Tevm/procedures
@@ -436,6 +450,7 @@
 ### Patch Changes
 
 - [#862](https://github.com/evmts/tevm-monorepo/pull/862) [`f217fa4dc2f730cc109940ef36872229ae9f26d3`](https://github.com/evmts/tevm-monorepo/commit/f217fa4dc2f730cc109940ef36872229ae9f26d3) Thanks [@roninjin10](https://github.com/roninjin10)! - - Renamed MemoryTevm MemoryClient
+
   - Renamed TevmClient HttpClient
   - Replaced @tevm/actions-types package with @tevm/actions-types, @tevm/client-types, and @tevm/procedures-types packages
   - Moved errors to @tevm/errors
