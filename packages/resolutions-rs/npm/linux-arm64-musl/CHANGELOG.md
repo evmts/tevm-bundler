@@ -1,5 +1,7 @@
 # @tevm/resolutions-rs-linux-arm64-musl
 
+## 1.0.0
+
 ## 1.0.0-rc.151
 
 ### Patch Changes

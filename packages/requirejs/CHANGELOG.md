@@ -1,5 +1,15 @@
 # @tevm/requirejs-plugin
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`59c0a3d`](https://github.com/evmts/tevm-bundler/commit/59c0a3d71d7dd9b44d5daf289c6dfcdc6640077e)]:
+  - @tevm/base-bundler@1.0.0
+  - @tevm/bundler-cache@1.0.0
+  - @tevm/config@1.0.0
+  - @tevm/solc@1.0.0
+
 ## 1.0.0-rc.151
 
 ### Patch Changes

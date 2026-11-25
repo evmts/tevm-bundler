@@ -1,5 +1,12 @@
 # @tevm/contract
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tevm/effect@1.0.0
+
 ## 1.0.0-rc.151
 
 ### Patch Changes
@@ -148,6 +155,7 @@
 ### Patch Changes
 
 - [#1186](https://github.com/evmts/tevm-monorepo/pull/1186) [`7765446`](https://github.com/evmts/tevm-monorepo/commit/7765446beec1391a00f3d3dd8d015d5205e0371a) Thanks [@roninjin10](https://github.com/roninjin10)! - Moved files around to colocate code better. Some packages are disappearing
+
   - Tevm/Zod is now part of Tevm/actions
   - Tevm/actions-types moved to Tevm/actions
   - Tevm/procedures-types moved to Tevm/procedures
@@ -378,6 +386,7 @@
 ### Minor Changes
 
 - [#400](https://github.com/evmts/tevm-monorepo/pull/400) [`8f11961`](https://github.com/evmts/tevm-monorepo/commit/8f11961f6b3ebc5882a1e5403d3726df7ddee0d4) Thanks [@roninjin10](https://github.com/roninjin10)! - Added strict validation of the Tevm config with helpful error messages.
+
   - If an unknown config option is passed now Tevm will fail early
   - Improvements such as better more clear error messages with actionable messages
 
@@ -422,6 +431,7 @@
 ### Minor Changes
 
 - [#283](https://github.com/evmts/tevm-monorepo/pull/283) [`05a8efe`](https://github.com/evmts/tevm-monorepo/commit/05a8efede4acad157e3820bdba24d92f598699e5) Thanks [@roninjin10](https://github.com/roninjin10)! - Updated config schema to support etherscan
+
   - Solc version is now listed under `compiler.solcVersion` instead of `solc`
   - Foundry projects are now listed under `compiler.foundryProject` instead of `forge`
   - Local contracts are now specified under `localContracts.contracts` instead of `deployments`

@@ -1,6 +1,6 @@
 {
 	"name": "@tevm/resolutions-rs-linux-arm-gnueabihf",
-	"version": "1.0.0-rc.151",
+	"version": "1.0.0",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/evmts/tevm-bundler.git",
