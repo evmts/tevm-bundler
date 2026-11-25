@@ -172,7 +172,8 @@ jobs:
             curl https://sh.rustup.rs -sSf --output rustup.sh
             sh rustup.sh -y --profile minimal --default-toolchain 1.98.0
             . "$HOME/.cargo/env"
-            pnpm install --frozen-lockfile
+            # The Rust bindings need the NAPI CLI, which has no install script.
+            pnpm install --frozen-lockfile --ignore-scripts
             pnpm --dir "packages/${{ matrix.package }}" exec napi build --platform --release --no-js --target x86_64-unknown-freebsd
 
       - name: Upload FreeBSD binding
