@@ -212,7 +212,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.98.0
 
       - name: Install npm with trusted publishing support
-        run: npm install --global npm@latest
+        run: npm install --global npm@^11.5.1
 
       - run: pnpm install --frozen-lockfile
 
