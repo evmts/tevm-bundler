@@ -1,5 +1,5 @@
 use alloy_primitives::Bytes;
-use foundry_compilers::artifacts::Contract;
+use foundry_compilers_artifacts_solc::Contract;
 use napi_derive::napi;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};

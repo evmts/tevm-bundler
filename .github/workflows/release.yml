@@ -167,7 +167,7 @@ jobs:
           environment_variables: GITHUB_TOKEN RUSTUP_IO_THREADS
           shell: bash
           run: |
-            sudo pkg install -y -f curl node24 libnghttp2 npm-node24 cmake-core
+            sudo pkg install -y -f curl node24 libnghttp2 npm-node24
             sudo npm install --global pnpm@9.15.9
             curl https://sh.rustup.rs -sSf --output rustup.sh
             sh rustup.sh -y --profile minimal --default-toolchain 1.98.0

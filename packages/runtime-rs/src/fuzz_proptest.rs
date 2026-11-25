@@ -1,5 +1,5 @@
 use crate::{generate_runtime, generate_runtime_js, ContractPackage, ModuleType};
-use foundry_compilers::artifacts::Contract;
+use foundry_compilers_artifacts_solc::Contract;
 use oxc::{allocator::Allocator, parser::Parser, semantic::SemanticBuilder, span::SourceType};
 use proptest::prelude::*;
 use proptest::test_runner::RngSeed;

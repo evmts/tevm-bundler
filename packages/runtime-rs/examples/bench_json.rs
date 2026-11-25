@@ -1,4 +1,4 @@
-use foundry_compilers::artifacts::Contract;
+use foundry_compilers_artifacts_solc::Contract;
 use serde_json::json;
 use std::time::{Duration, Instant};
 use tevm_runtime_rs::{generate_runtime, ContractPackage, ModuleType};
