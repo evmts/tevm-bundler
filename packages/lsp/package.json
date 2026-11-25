@@ -40,9 +40,9 @@
 		"@tevm/config": "workspace:^",
 		"@tevm/tsconfig": "^1.0.0-next.142",
 		"@tevm/tsupconfig": "^1.0.0-next.148",
-		"@volar/language-core": "~2.4.28",
-		"@volar/language-server": "~2.4.28",
-		"@volar/language-service": "~2.4.28",
+		"@volar/language-core": "~2.4.31",
+		"@volar/language-server": "~2.4.31",
+		"@volar/language-service": "~2.4.31",
 		"effect": "3.21.2",
 		"solc": "0.8.35",
 		"volar-service-css": "0.0.71",
@@ -50,12 +50,12 @@
 		"volar-service-html": "0.0.71",
 		"volar-service-typescript": "^0.0.71",
 		"vscode-html-languageservice": "^5.6.2",
-		"zod": "^4.4.3"
+		"zod": "^4.6.7"
 	},
 	"devDependencies": {
 		"tsup": "^8.5.1",
 		"typedoc": "^0.28.19",
-		"typedoc-plugin-markdown": "^4.11.0",
+		"typedoc-plugin-markdown": "^4.14.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.6"
 	},

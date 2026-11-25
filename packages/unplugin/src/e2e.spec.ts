@@ -7,7 +7,7 @@
  * The generated module is written to disk and imported, so the test proves the output
  * runs against the real `@tevm/contract`.
  */
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -56,21 +56,6 @@ contract Token {
 	'contracts/Sidecar.sol.ts': 'export const Sidecar = {}',
 	'contracts/Broken.sol': 'pragma solidity ^0.8.20;\ncontract Broken { function (',
 }
-
-/** Polls until the non-blocking cache write has landed on disk */
-const waitFor = async (condition: () => boolean) => {
-	for (let i = 0; i < 200 && !condition(); i++) {
-		await new Promise((resolve) => setTimeout(resolve, 25))
-	}
-	expect(condition()).toBe(true)
-}
-
-const listFiles = (directory: string): string[] =>
-	existsSync(directory)
-		? readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
-				entry.isDirectory() ? listFiles(join(directory, entry.name)) : [join(directory, entry.name)],
-			)
-		: []
 
 describe('bundler pipeline e2e', { timeout: 120_000 }, () => {
 	let project: string
@@ -157,8 +142,11 @@ describe('bundler pipeline e2e', { timeout: 120_000 }, () => {
 
 		const cold = await (await startPlugin()).load(id)
 		expect(compile).toHaveBeenCalledTimes(1)
-		const cacheDirectory = join(project, '.tevm')
-		await waitFor(() => listFiles(cacheDirectory).some((file) => file.includes('Owned.sol') && file.endsWith('.json')))
+		// The cache writes metadata after the artifacts. Wait for the complete entry.
+		const metadataPath = join(project, '.tevm', 'contracts', 'Owned.sol', 'metadata.json')
+		await vi.waitFor(() => expect(JSON.parse(readFileSync(metadataPath, 'utf8'))).toHaveProperty('artifactsHash'), {
+			timeout: 5_000,
+		})
 
 		// a second build starts from a fresh plugin and resolves from the cache on disk
 		const warm = await (await startPlugin()).load(id)

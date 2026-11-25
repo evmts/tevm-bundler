@@ -21,16 +21,16 @@ tempfile = "3.27.0"
 tevm_solc_rs = { path = "../solc-rs" }
 
 # NAPI bindings
-napi = { version = "3.16.2", default-features = false, features = ["napi8", "tokio_rt", "serde-json", "async"] }
-napi-derive = "3.7.1"
+napi = { version = "3.16.3", default-features = false, features = ["napi8", "tokio_rt", "serde-json", "async"] }
+napi-derive = "3.7.2"
 libc = "0.2.191"
 
 [build-dependencies]
-napi-build = "2.6.0"
+napi-build = "2.7.0"
 
 [dev-dependencies]
 # Standalone Rust test and example binaries run outside a Node host.
-napi = { version = "3.16.2", default-features = false, features = ["dyn-symbols"] }
+napi = { version = "3.16.3", default-features = false, features = ["dyn-symbols"] }
 proptest = "1.12"
 
 # Parse generated JS, TS and declarations and check for duplicate bindings in tests.

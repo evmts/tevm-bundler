@@ -42,9 +42,9 @@
 		"@tevm/tsconfig": "^1.0.0-next.142",
 		"@tevm/tsupconfig": "^1.0.0-next.148",
 		"@types/vscode": "^1.120.0",
-		"@volar/language-server": "~2.4.28",
-		"@volar/vscode": "~2.4.28",
-		"esbuild": "^0.28.0",
+		"@volar/language-server": "~2.4.31",
+		"@volar/vscode": "~2.4.31",
+		"esbuild": "^0.28.2",
 		"vsce": "^2.15.0",
 		"vscode-languageclient": "^9.0.1"
 	}

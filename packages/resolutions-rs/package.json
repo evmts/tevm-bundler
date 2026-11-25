@@ -23,14 +23,14 @@
 		"build:napi": "napi build --platform --release",
 		"build:release": "cargo build --release",
 		"example": "node examples/usage.js",
-		"prepublishOnly": "napi pre-publish --tag-style npm",
+		"prepublishOnly": "napi pre-publish --tag-style npm --skip-optional-publish --no-gh-release",
 		"test": "cargo test",
 		"test:fuzz": "cargo test fuzz_",
 		"test:run": "cargo test",
 		"typecheck": "cargo check"
 	},
 	"devDependencies": {
-		"@napi-rs/cli": "^3.6.2"
+		"@napi-rs/cli": "^3.11.1"
 	},
 	"engines": {
 		"node": ">= 14"

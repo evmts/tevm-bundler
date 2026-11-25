@@ -167,7 +167,7 @@ jobs:
           environment_variables: GITHUB_TOKEN RUSTUP_IO_THREADS
           shell: bash
           run: |
-            sudo pkg install -y -f curl node libnghttp2 npm cmake
+            sudo pkg install -y -f curl node24 libnghttp2 npm-node24 cmake-core
             sudo npm install --global pnpm@9.15.9
             curl https://sh.rustup.rs -sSf --output rustup.sh
             sh rustup.sh -y --profile minimal --default-toolchain 1.98.0
@@ -236,10 +236,10 @@ jobs:
         if: needs.verify.outputs.publish-native == 'true'
         shell: bash
         run: |
-          pnpm --dir packages/resolutions-rs exec napi artifacts --build-output-dir artifacts
-          pnpm --dir packages/runtime-rs exec napi artifacts --build-output-dir artifacts
-          pnpm --dir packages/resolutions-rs exec napi pre-publish --tag-style npm
-          pnpm --dir packages/runtime-rs exec napi pre-publish --tag-style npm
+          pnpm --dir packages/resolutions-rs exec napi artifacts --output-dir artifacts
+          pnpm --dir packages/runtime-rs exec napi artifacts --output-dir artifacts
+          pnpm --dir packages/resolutions-rs run prepublishOnly
+          pnpm --dir packages/runtime-rs run prepublishOnly
           for manifest in packages/resolutions-rs/npm/*/package.json packages/runtime-rs/npm/*/package.json; do
             directory="$(dirname "$manifest")"
             entry="$(node --print "require('./${manifest}').main")"
